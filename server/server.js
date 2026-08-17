@@ -165,9 +165,14 @@ const createCrudRoutes = (path, Model, readRoles = ['admin', 'supervisor', 'empl
 
   app.post(`/api/${path}`, authenticateToken, requireRole(writeRoles), async (req, res) => {
     try {
-      if (path === 'employees' && req.user.role === 'supervisor') {
-        req.body.branch = req.user.branch;
-        req.body.role = 'employee';
+      if (path === 'employees') {
+        if (req.user.role === 'supervisor') {
+          req.body.branch = req.user.branch;
+          req.body.role = 'employee';
+        }
+        const rawPassword = req.body.password || 'password123';
+        const salt = await bcrypt.genSalt(10);
+        req.body.password = await bcrypt.hash(rawPassword, salt);
       }
       const newItem = new Model(req.body);
       const savedItem = await newItem.save();

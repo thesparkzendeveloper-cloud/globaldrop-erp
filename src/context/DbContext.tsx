@@ -178,7 +178,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         phone: '+1 (212) 555-0100',
         address: '350 Fifth Avenue, New York, NY 10118',
         taxRate: 15,
-        currency: 'GBP'
+        currency: 'INR'
       });
       setDashboardStats(statsData || dummyData.dashboardStats);
     } catch (err) {
@@ -386,6 +386,23 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
           });
         }
       }
+    }
+
+    // Auto-create income transaction in Finance for this order
+    if (item.totalAmount && item.totalAmount > 0) {
+      const txnId = 'TXN' + Math.floor(100 + Math.random() * 900);
+      const txnData = {
+        id: txnId,
+        description: `Order ${randomId} — ${item.customer || 'Customer'}`,
+        amount: item.totalAmount,
+        type: 'income' as const,
+        category: 'Sales',
+        date: new Date().toISOString().split('T')[0],
+        createdBy: 'System',
+        branch: item.branch || 'India Branch',
+      };
+      const newTxn = await makeRequest('transactions', 'POST', txnData);
+      setTransactions(prev => [mapMongoId(newTxn), ...prev]);
     }
 
     refreshData();

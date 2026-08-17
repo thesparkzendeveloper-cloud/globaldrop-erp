@@ -190,8 +190,8 @@ export default function AdminDashboard() {
         <StatCard title="Total Orders" value={stats.totalOrders.toLocaleString()} icon={ShoppingCart} iconColor="bg-gradient-to-br from-amber-500 to-amber-600" path="/orders" />
         <StatCard title="Total Inventory" value={stats.totalInventory.toLocaleString()} icon={Package} iconColor="bg-gradient-to-br from-rose-500 to-rose-600" path="/inventory" />
         <StatCard title="Pending" value={stats.pendingRequests} icon={Clock} iconColor="bg-gradient-to-br from-orange-500 to-orange-600" path="/approvals" />
-        <StatCard title="Revenue" value={`£${(stats.financeSummary.income / 1000).toFixed(1)}k`} icon={DollarSign} iconColor="bg-gradient-to-br from-teal-500 to-teal-600" trend={stats.revenueSummary.growth} path="/finance" />
-        <StatCard title="Balance" value={`£${(stats.financeSummary.balance / 1000).toFixed(1)}k`} icon={ArrowUpRight} iconColor="bg-gradient-to-br from-cyan-500 to-cyan-600" path="/finance" />
+        <StatCard title="Revenue" value={`₹${(stats.financeSummary.income / 1000).toFixed(1)}k`} icon={DollarSign} iconColor="bg-gradient-to-br from-teal-500 to-teal-600" trend={stats.revenueSummary.growth} path="/finance" />
+        <StatCard title="Balance" value={`₹${(stats.financeSummary.balance / 1000).toFixed(1)}k`} icon={ArrowUpRight} iconColor="bg-gradient-to-br from-cyan-500 to-cyan-600" path="/finance" />
       </div>
 
       {/* Lead Pipeline Overview */}
@@ -229,8 +229,8 @@ export default function AdminDashboard() {
               <AreaChart data={dynamicRevenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} />
-                <YAxis stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} tickFormatter={v => `£${v / 1000}k`} width={45} />
-                <Tooltip formatter={(v: any) => `£${v.toLocaleString()}`} />
+                <YAxis stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} tickFormatter={v => `₹${v / 1000}k`} width={45} />
+                <Tooltip formatter={(v: any) => `₹${v.toLocaleString()}`} />
                 <Legend wrapperStyle={{ fontSize: '12px' }} />
                 <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fill="#93c5fd" fillOpacity={0.4} name="Revenue" />
                 <Area type="monotone" dataKey="expenses" stroke="#10b981" fill="#6ee7b7" fillOpacity={0.4} name="Expenses" />
@@ -245,9 +245,9 @@ export default function AdminDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dynamicBranchPerformance} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis type="number" stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} tickFormatter={v => `£${v / 1000}k`} />
+                <XAxis type="number" stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} tickFormatter={v => `₹${v / 1000}k`} />
                 <YAxis type="category" dataKey="branch" stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} width={55} />
-                <Tooltip formatter={(v: any) => `£${v.toLocaleString()}`} />
+                <Tooltip formatter={(v: any) => `₹${v.toLocaleString()}`} />
                 <Bar dataKey="revenue" fill="#3b82f6" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -302,19 +302,19 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
           <div className="p-3 sm:p-4 bg-blue-50 rounded-lg sm:rounded-xl">
             <p className="text-xs sm:text-sm text-blue-600">Budget</p>
-            <p className="text-base sm:text-lg lg:text-xl font-semibold text-blue-700 mt-0.5 sm:mt-1">£{(stats.financeSummary.budget / 1000).toFixed(1)}k</p>
+            <p className="text-base sm:text-lg lg:text-xl font-semibold text-blue-700 mt-0.5 sm:mt-1">₹{(stats.financeSummary.budget / 1000).toFixed(1)}k</p>
           </div>
-          <div className="p-3 sm:p-4 bg-emerald-50 rounded-lg sm:rounded-xl">
-            <p className="text-xs sm:text-sm text-emerald-600">Income (Revenue)</p>
-            <p className="text-base sm:text-lg lg:text-xl font-semibold text-emerald-700 mt-0.5 sm:mt-1">£{(stats.financeSummary.income / 1000).toFixed(1)}k</p>
+          <div className="card p-3 sm:p-4 bg-emerald-50 border-emerald-100 rounded-lg sm:rounded-xl">
+            <p className="text-xs font-medium text-emerald-600">Total Income</p>
+            <p className="text-base sm:text-lg lg:text-xl font-semibold text-emerald-700 mt-0.5 sm:mt-1">₹{(stats.financeSummary.income / 1000).toFixed(1)}k</p>
           </div>
-          <div className="p-3 sm:p-4 bg-amber-50 rounded-lg sm:rounded-xl">
-            <p className="text-xs sm:text-sm text-amber-600">Expenses</p>
-            <p className="text-base sm:text-lg lg:text-xl font-semibold text-amber-700 mt-0.5 sm:mt-1">£{(stats.financeSummary.expenses / 1000).toFixed(1)}k</p>
+          <div className="card p-3 sm:p-4 bg-amber-50 border-amber-100 rounded-lg sm:rounded-xl">
+            <p className="text-xs font-medium text-amber-600">Total Expenses</p>
+            <p className="text-base sm:text-lg lg:text-xl font-semibold text-amber-700 mt-0.5 sm:mt-1">₹{(stats.financeSummary.expenses / 1000).toFixed(1)}k</p>
           </div>
-          <div className="p-3 sm:p-4 bg-violet-50 rounded-lg sm:rounded-xl">
-            <p className="text-xs sm:text-sm text-violet-600">Balance</p>
-            <p className="text-base sm:text-lg lg:text-xl font-semibold text-violet-700 mt-0.5 sm:mt-1">£{(stats.financeSummary.balance / 1000).toFixed(1)}k</p>
+          <div className="card p-3 sm:p-4 bg-violet-50 border-violet-100 rounded-lg sm:rounded-xl">
+            <p className="text-xs font-medium text-violet-600">Net Balance</p>
+            <p className="text-base sm:text-lg lg:text-xl font-semibold text-violet-700 mt-0.5 sm:mt-1">₹{(stats.financeSummary.balance / 1000).toFixed(1)}k</p>
           </div>
         </div>
       </div>

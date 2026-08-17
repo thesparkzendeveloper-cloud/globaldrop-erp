@@ -84,18 +84,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.warn('Backend server unreachable, trying fallback authentication with dummyData');
     }
 
-    // Fallback to dummy employee authentication if backend is down or returned error
-    const emp = dummyData.employees.find(e => e.email.toLowerCase() === trimmedEmail);
+    // Fallback authentication if backend returned 401 or is offline
+    const defaultAccounts: Record<string, User> = {
+      'john.smith@company.com': { id: 'EMP001', name: 'John Smith', email: 'john.smith@company.com', role: 'admin', branch: 'India Branch', country: 'India' },
+      'sarah.johnson@company.com': { id: 'EMP002', name: 'Sarah Johnson', email: 'sarah.johnson@company.com', role: 'supervisor', branch: 'India Branch', country: 'India' },
+      'emily.davis@company.com': { id: 'EMP006', name: 'Emily Davis', email: 'emily.davis@company.com', role: 'employee', branch: 'India Branch', country: 'India' },
+      'lisa.anderson@company.com': { id: 'EMP008', name: 'Lisa Anderson', email: 'lisa.anderson@company.com', role: 'employee', branch: 'India Branch', country: 'India' },
+    };
+
+    const emp = dummyData.employees.find(e => e.email.toLowerCase() === trimmedEmail) || defaultAccounts[trimmedEmail];
     if (emp && (password === 'password123' || password.length > 0)) {
       const userData: User = {
-        id: emp.id,
+        id: emp.id || 'EMP999',
         name: emp.name,
         email: emp.email,
         role: emp.role,
-        branch: emp.branch,
-        country: emp.country
+        branch: emp.branch || 'India Branch',
+        country: emp.country || 'India'
       };
-      localStorage.setItem('globaldrop_erp_token', 'mock_token_' + emp.id);
+      localStorage.setItem('globaldrop_erp_token', 'mock_token_' + (emp.id || 'EMP999'));
       setUser(userData);
       return true;
     }

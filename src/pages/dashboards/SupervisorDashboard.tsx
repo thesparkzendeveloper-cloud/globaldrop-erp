@@ -9,6 +9,7 @@ import {
   Users,
   CheckCircle,
   XCircle,
+  Send,
 } from 'lucide-react';
 import {
   BarChart,
@@ -69,7 +70,7 @@ export default function SupervisorDashboard() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
-        <StatCard title="Budget" value={`£${(stats.availableBudget / 1000).toFixed(0)}k`} icon={DollarSign} bgColor="bg-gradient-to-br from-emerald-500 to-emerald-600" textColor="text-emerald-600" path="/finance" />
+        <StatCard title="Budget" value={`₹${(stats.availableBudget / 1000).toFixed(0)}k`} icon={DollarSign} bgColor="bg-gradient-to-br from-emerald-500 to-emerald-600" textColor="text-emerald-600" path="/finance" />
         <StatCard title="Pending" value={stats.pendingRequests} icon={Clock} bgColor="bg-gradient-to-br from-amber-500 to-amber-600" textColor="text-amber-600" path="/approvals" />
         <StatCard title="Inventory" value={stats.pendingInventory} icon={Package} bgColor="bg-gradient-to-br from-blue-500 to-blue-600" textColor="text-blue-600" path="/inventory" />
         <StatCard title="Tasks" value={stats.assignedTasks} icon={ClipboardList} bgColor="bg-gradient-to-br from-violet-500 to-violet-600" textColor="text-violet-600" path="/tasks" />
@@ -96,7 +97,10 @@ export default function SupervisorDashboard() {
         <div className="card p-3 sm:p-4 lg:p-6">
           <h3 className="text-sm sm:text-base font-semibold text-slate-800 mb-3 sm:mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3">
-            <button onClick={() => navigate('/tasks')} className="btn-primary text-xs sm:text-sm justify-center">
+            <button onClick={() => navigate('/approvals')} className="btn-primary text-xs sm:text-sm justify-center bg-emerald-600 hover:bg-emerald-700">
+              <Send size={16} /> Request Admin
+            </button>
+            <button onClick={() => navigate('/tasks')} className="btn-secondary text-xs sm:text-sm justify-center">
               <Users size={16} /> <span className="hidden sm:inline">Assign</span> Tasks
             </button>
             <button onClick={() => navigate('/approvals')} className="btn-secondary text-xs sm:text-sm justify-center">
@@ -119,7 +123,7 @@ export default function SupervisorDashboard() {
             {fundRequests.filter(r => r.status === 'pending').slice(0, 3).map(req => (
               <div key={req.id} className="flex items-center justify-between p-2.5 sm:p-3 bg-slate-50 rounded-lg">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm font-medium text-slate-700">£{req.amount.toLocaleString()}</p>
+                  <p className="text-xs sm:text-sm font-medium text-slate-700">₹{req.amount.toLocaleString()}</p>
                   <p className="text-xs text-slate-500 truncate">{req.reason}</p>
                 </div>
                 <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">

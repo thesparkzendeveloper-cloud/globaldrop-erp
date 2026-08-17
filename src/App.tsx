@@ -57,7 +57,7 @@ function AppLayout() {
             <Route path="/tasks" element={<RoleGuard roles={['admin', 'supervisor', 'employee']}><TasksPage /></RoleGuard>} />
             <Route path="/inventory" element={<RoleGuard roles={['admin', 'supervisor']}><InventoryPage /></RoleGuard>} />
             <Route path="/vendors" element={<RoleGuard roles={['admin']}><VendorsPage /></RoleGuard>} />
-            <Route path="/finance" element={<RoleGuard roles={['admin']}><FinancePage /></RoleGuard>} />
+            <Route path="/finance" element={<RoleGuard roles={['admin', 'supervisor']}><FinancePage /></RoleGuard>} />
             <Route path="/orders" element={<RoleGuard roles={['admin', 'supervisor']}><OrdersPage /></RoleGuard>} />
             <Route path="/reports" element={<RoleGuard roles={['admin', 'supervisor']}><ReportsPage /></RoleGuard>} />
             <Route path="/approvals" element={<RoleGuard roles={['admin', 'supervisor']}><ApprovalsPage /></RoleGuard>} />

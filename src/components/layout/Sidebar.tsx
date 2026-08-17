@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Globe2,
+
   Building2,
   Users,
   Clock,
@@ -28,14 +28,14 @@ interface SidebarProps {
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'supervisor', 'employee'] },
-  { path: '/countries', label: 'Countries', icon: Globe2, roles: ['admin'] },
+
   { path: '/branches', label: 'Branches', icon: Building2, roles: ['admin'] },
   { path: '/employees', label: 'Employees', icon: Users, roles: ['admin', 'supervisor'] },
   { path: '/attendance', label: 'Attendance', icon: Clock, roles: ['admin', 'supervisor', 'employee'] },
   { path: '/tasks', label: 'Tasks', icon: ClipboardList, roles: ['admin', 'supervisor', 'employee'] },
   { path: '/inventory', label: 'Inventory', icon: Package, roles: ['admin', 'supervisor'] },
   { path: '/vendors', label: 'Vendors', icon: TruckIcon, roles: ['admin'] },
-  { path: '/finance', label: 'Finance', icon: DollarSign, roles: ['admin'] },
+  { path: '/finance', label: 'Finance', icon: DollarSign, roles: ['admin', 'supervisor'] },
   { path: '/orders', label: 'Orders', icon: ShoppingCart, roles: ['admin', 'supervisor'] },
   { path: '/leads', label: 'Leads', icon: Target, roles: ['admin', 'supervisor'] },
   { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'supervisor'] },

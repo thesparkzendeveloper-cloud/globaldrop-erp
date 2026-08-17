@@ -27,71 +27,51 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
   const navigate = useNavigate();
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const unread = notifications.filter(n => !n.read).length;
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 sm:h-16 bg-white border-b border-slate-200 z-40 flex items-center justify-between px-3 sm:px-4 lg:px-6">
-      <div className="flex items-center gap-2 sm:gap-3">
+    <header className="fixed top-0 left-0 lg:left-64 right-0 h-14 sm:h-16 bg-white border-b border-slate-200 z-30 flex items-center justify-between px-3 sm:px-4 lg:px-6 gap-2 sm:gap-4 transition-all">
+      {/* Left: Mobile Menu Toggle */}
+      <div className="flex items-center lg:hidden">
         <button
           onClick={onMenuClick}
-          className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 lg:hidden"
+          className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 focus:outline-none"
+          title="Open Menu"
         >
           <Menu size={20} />
         </button>
-
-        {showMobileSearch ? (
-          <div className="flex items-center gap-2 flex-1 lg:hidden">
-            <div className="relative flex-1">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                autoFocus
-                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <button
-              onClick={() => setShowMobileSearch(false)}
-              className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="relative hidden lg:flex items-center">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search orders, products, employees..."
-                className="w-64 xl:w-80 pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </>
-        )}
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-2">
-        <button
-          onClick={() => setShowMobileSearch(true)}
-          className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 lg:hidden"
-        >
-          <Search size={18} />
-        </button>
+      {/* Center: Search Bar (Centered across all logins & screens) */}
+      <div className="flex-1 max-w-sm sm:max-w-md lg:max-w-lg mx-auto">
+        <div className="relative w-full">
+          <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search orders, products, employees..."
+            className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-sm"
+          />
+        </div>
+      </div>
 
+      {/* Right: Actions & User Profile */}
+      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+        {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 sm:p-2.5 rounded-lg hover:bg-slate-100 text-slate-500"
+          className="p-2 sm:p-2.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+          title="Toggle Theme"
         >
           {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
         </button>
 
+        {/* Notifications Dropdown */}
         <div className="relative">
           <button
             onClick={() => { setShowNotifications(s => !s); setShowProfile(false); }}
-            className="p-2 sm:p-2.5 rounded-lg hover:bg-slate-100 text-slate-500 relative"
+            className="p-2 sm:p-2.5 rounded-lg hover:bg-slate-100 text-slate-500 relative transition-colors"
+            title="Notifications"
           >
             <Bell size={18} />
             {unread > 0 && (
@@ -133,12 +113,13 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
           )}
         </div>
 
+        {/* Profile Dropdown */}
         <div className="relative">
           <button
             onClick={() => { setShowProfile(s => !s); setShowNotifications(false); }}
-            className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 pr-1 sm:pr-2 py-1 sm:py-1.5 rounded-lg hover:bg-slate-100"
+            className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 pr-1 sm:pr-2 py-1 sm:py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm flex-shrink-0">
               {user?.name.split(' ').map(n => n[0]).join('')}
             </div>
             <div className="text-left hidden sm:block">

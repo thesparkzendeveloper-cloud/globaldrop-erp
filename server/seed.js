@@ -23,6 +23,7 @@ dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/globaldrop-erp';
 
 const countries = [
+  { name: 'India', code: 'IN', currency: 'INR', timezone: 'Asia/Kolkata', status: 'active' },
   { name: 'United States', code: 'US', currency: 'USD', timezone: 'America/New_York', status: 'active' },
   { name: 'United Kingdom', code: 'UK', currency: 'GBP', timezone: 'Europe/London', status: 'active' },
   { name: 'Germany', code: 'DE', currency: 'EUR', timezone: 'Europe/Berlin', status: 'active' },
@@ -34,6 +35,7 @@ const countries = [
 ];
 
 const branches = [
+  { name: 'India Branch', country: 'India', address: 'MG Road, Bengaluru, Karnataka 560001', phone: '+91 80 1234 5678', email: 'india@company.com', status: 'active', manager: 'Rajesh Kumar' },
   { name: 'New York HQ', country: 'United States', address: '350 Fifth Avenue, New York, NY 10118', phone: '+1 (212) 555-0100', email: 'nyhq@company.com', status: 'active', manager: 'John Smith' },
   { name: 'London Branch', country: 'United Kingdom', address: '10 Downing Street, London SW1A 2AA', phone: '+44 20 7123 4567', email: 'london@company.com', status: 'active', manager: 'Sarah Johnson' },
   { name: 'Berlin Operations', country: 'Germany', address: 'Unter den Linden 77, 10117 Berlin', phone: '+49 30 12345678', email: 'berlin@company.com', status: 'active', manager: 'Hans Mueller' },
@@ -44,8 +46,8 @@ const branches = [
 ];
 
 const employees = [
-  { id: 'EMP001', name: 'John Smith', email: 'john.smith@company.com', phone: '+1 (212) 555-0101', role: 'admin', country: 'United States', branch: 'New York HQ', joinDate: '2020-01-15', status: 'active' },
-  { id: 'EMP002', name: 'Sarah Johnson', email: 'sarah.johnson@company.com', phone: '+44 20 7123 4568', role: 'supervisor', country: 'United Kingdom', branch: 'London Branch', joinDate: '2020-03-22', status: 'active' },
+  { id: 'EMP001', name: 'John Smith', email: 'john.smith@company.com', phone: '+1 (212) 555-0101', role: 'admin', country: 'India', branch: 'India Branch', joinDate: '2020-01-15', status: 'active' },
+  { id: 'EMP002', name: 'Sarah Johnson', email: 'sarah.johnson@company.com', phone: '+91 80 1234 5679', role: 'supervisor', country: 'India', branch: 'India Branch', joinDate: '2020-03-22', status: 'active' },
   { id: 'EMP003', name: 'Hans Mueller', email: 'hans.mueller@company.com', phone: '+49 30 12345679', role: 'supervisor', country: 'Germany', branch: 'Berlin Operations', joinDate: '2020-06-10', status: 'active' },
   { id: 'EMP004', name: 'Yuki Tanaka', email: 'yuki.tanaka@company.com', phone: '+81 3 1234 5679', role: 'supervisor', country: 'Japan', branch: 'Tokyo Office', joinDate: '2020-08-18', status: 'active' },
   { id: 'EMP005', name: 'Michael Brown', email: 'michael.brown@company.com', phone: '+61 2 9876 5433', role: 'supervisor', country: 'Australia', branch: 'Sydney Hub', joinDate: '2020-11-05', status: 'active' },
@@ -174,8 +176,8 @@ async function seed() {
     await InventoryRequest.deleteMany({});
     await Order.deleteMany({});
     await Notification.deleteMany({});
-    await Setting.deleteMany({});
-
+    await Lead.deleteMany({});
+    try { await Lead.collection.dropIndexes(); } catch (e) {}
     console.log('Cleared existing collections.');
 
     // Seed Countries
@@ -236,11 +238,11 @@ async function seed() {
 
     // Seed Leads
     const sampleLeads = [
-      { name: 'Robert Fox', email: 'robert.fox@acme.com', phone: '+1 555-0192', company: 'Acme Logistics', source: 'website', status: 'new', assignedTo: 'EMP001', assignedToName: 'John Smith', value: 45000, notes: 'Interested in bulk drop shipping services' },
-      { name: 'Kristin Watson', email: 'kristin.w@nexus.io', phone: '+1 555-0143', company: 'Nexus Retail', source: 'referral', status: 'qualified', assignedTo: 'EMP002', assignedToName: 'Sarah Johnson', value: 82000, notes: 'Contract under review' },
-      { name: 'Eleanor Pena', email: 'eleanor@globaltrend.com', phone: '+44 20 7946 0912', company: 'Global Trends UK', source: 'social', status: 'contacted', assignedTo: 'EMP002', assignedToName: 'Sarah Johnson', value: 28000, notes: 'Follow-up call scheduled next Tuesday' },
-      { name: 'Cody Fisher', email: 'cody.fisher@apex.de', phone: '+49 30 901820', company: 'Apex Imports GmbH', source: 'cold-call', status: 'converted', assignedTo: 'EMP003', assignedToName: 'Hans Mueller', value: 120000, notes: 'Closed annual contract on Q3' },
-      { name: 'Jane Cooper', email: 'jane@coopertech.jp', phone: '+81 3 5555 0182', company: 'Cooper Tech Japan', source: 'email', status: 'new', assignedTo: 'EMP004', assignedToName: 'Yuki Tanaka', value: 35000, notes: 'Inquired via contact form' },
+      { id: 'LEAD001', name: 'Robert Fox', email: 'robert.fox@acme.com', phone: '+1 555-0192', company: 'Acme Logistics', source: 'website', status: 'new', assignedTo: 'EMP001', assignedToName: 'John Smith', value: 45000, notes: 'Interested in bulk drop shipping services' },
+      { id: 'LEAD002', name: 'Kristin Watson', email: 'kristin.w@nexus.io', phone: '+1 555-0143', company: 'Nexus Retail', source: 'referral', status: 'qualified', assignedTo: 'EMP002', assignedToName: 'Sarah Johnson', value: 82000, notes: 'Contract under review' },
+      { id: 'LEAD003', name: 'Eleanor Pena', email: 'eleanor@globaltrend.com', phone: '+44 20 7946 0912', company: 'Global Trends UK', source: 'social', status: 'contacted', assignedTo: 'EMP002', assignedToName: 'Sarah Johnson', value: 28000, notes: 'Follow-up call scheduled next Tuesday' },
+      { id: 'LEAD004', name: 'Cody Fisher', email: 'cody.fisher@apex.de', phone: '+49 30 901820', company: 'Apex Imports GmbH', source: 'cold-call', status: 'converted', assignedTo: 'EMP003', assignedToName: 'Hans Mueller', value: 120000, notes: 'Closed annual contract on Q3' },
+      { id: 'LEAD005', name: 'Jane Cooper', email: 'jane@coopertech.jp', phone: '+81 3 5555 0182', company: 'Cooper Tech Japan', source: 'email', status: 'new', assignedTo: 'EMP004', assignedToName: 'Yuki Tanaka', value: 35000, notes: 'Inquired via contact form' },
     ];
     await Lead.insertMany(sampleLeads);
     console.log('Seeded Leads.');

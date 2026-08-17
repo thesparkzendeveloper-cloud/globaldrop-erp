@@ -2,24 +2,43 @@ import React, { useState } from 'react';
 import { LogIn, LogOut, Calendar, Users, Clock, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
 
+const IST = 'Asia/Kolkata';
+
+// Get current time in IST as HH:MM
+const getCurrentIST = (): string => {
+  return new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: IST,
+  }).format(new Date());
+};
+
+// Format HH:MM → "09:30 AM"
+const formatTime = (time?: string): string => {
+  if (!time || time === '--:--') return '--:--';
+  const [hStr, mStr] = time.split(':');
+  const h = parseInt(hStr, 10);
+  const m = mStr ?? '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${String(h12).padStart(2, '0')}:${m} ${ampm}`;
+};
+
 export default function AttendancePage() {
   const { attendanceRecords, employees, checkInEmployee, checkOutEmployee } = useDb();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'checkIn' | 'checkOut'>('checkIn');
+  const openModal = (type: 'checkIn' | 'checkOut') => {
+    setModalType(type);
+    setShowModal(true);
+  };
 
   const dailyRecords = attendanceRecords.filter(a => a.date === date);
 
   const stats = {
     present: dailyRecords.filter(a => a.status === 'present').length,
-    absent: dailyRecords.filter(a => a.status === 'absent').length,
-    late: dailyRecords.filter(a => a.status === 'late').length,
-    total: dailyRecords.length,
-  };
-
-  const openModal = (type: 'checkIn' | 'checkOut') => {
-    setModalType(type);
-    setShowModal(true);
+    absent:  dailyRecords.filter(a => a.status === 'absent').length,
+    late:    dailyRecords.filter(a => a.status === 'late').length,
+    total:   dailyRecords.length,
   };
 
   const handleManualSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -27,7 +46,6 @@ export default function AttendancePage() {
     const formData = new FormData(e.currentTarget);
     const employeeId = formData.get('employeeId') as string;
     const empName = employees.find(emp => emp.id === employeeId)?.name || 'Unknown';
-
     try {
       if (modalType === 'checkIn') {
         await checkInEmployee(employeeId, empName);
@@ -42,12 +60,18 @@ export default function AttendancePage() {
 
   return (
     <div className="page-enter">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold text-slate-800">Attendance</h1>
           <p className="text-slate-500 mt-0.5 sm:mt-1 text-sm">Track employee attendance and check-ins</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 -mx-1 px-1 sm:mx-0 sm:px-0 sm:pb-0">
+          {/* IST live clock badge */}
+          <div className="hidden sm:flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap">
+            <Clock size={13} />
+            IST {formatTime(getCurrentIST())}
+          </div>
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-1.5 sm:p-2">
             <Calendar size={16} className="text-slate-400" />
             <input
@@ -66,6 +90,7 @@ export default function AttendancePage() {
         </div>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
         <div className="card p-3 sm:p-5">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -117,6 +142,7 @@ export default function AttendancePage() {
         </div>
       </div>
 
+      {/* Table */}
       <div className="card overflow-hidden">
         <div className="p-3 sm:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <p className="text-xs sm:text-sm font-medium text-slate-700">Attendance for {date}</p>
@@ -129,8 +155,8 @@ export default function AttendancePage() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="table-header">Employee</th>
-                <th className="table-header">Check In</th>
-                <th className="table-header">Check Out</th>
+                <th className="table-header">Check In (IST)</th>
+                <th className="table-header">Check Out (IST)</th>
                 <th className="table-header hidden sm:table-cell">Hours</th>
                 <th className="table-header">Status</th>
               </tr>
@@ -145,25 +171,52 @@ export default function AttendancePage() {
               ) : (
                 dailyRecords.map(record => (
                   <tr key={record.id} className="hover:bg-slate-50 transition-colors">
+                    {/* Employee */}
                     <td className="table-cell">
                       <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                        <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
                           {record.employeeName.split(' ').map(n => n[0]).join('')}
                         </div>
                         <span className="font-medium text-xs sm:text-sm truncate">{record.employeeName}</span>
                       </div>
                     </td>
+
+                    {/* Check In */}
                     <td className="table-cell">
-                      <span className="text-slate-700 text-xs sm:text-sm">{record.checkIn || '--:--'}</span>
+                      <div className="flex items-center gap-1.5">
+                        <LogIn size={13} className={record.checkIn ? 'text-emerald-500' : 'text-slate-300'} />
+                        <span className={`text-xs sm:text-sm font-semibold ${record.checkIn ? 'text-emerald-700' : 'text-slate-400'}`}>
+                          {formatTime(record.checkIn)}
+                        </span>
+                      </div>
                     </td>
+
+                    {/* Check Out */}
                     <td className="table-cell">
-                      <span className="text-slate-700 text-xs sm:text-sm">{record.checkOut || '--:--'}</span>
+                      <div className="flex items-center gap-1.5">
+                        <LogOut size={13} className={record.checkOut ? 'text-red-400' : 'text-slate-300'} />
+                        <span className={`text-xs sm:text-sm font-semibold ${record.checkOut ? 'text-red-600' : 'text-slate-400'}`}>
+                          {formatTime(record.checkOut)}
+                        </span>
+                      </div>
                     </td>
-                    <td className="table-cell hidden sm:table-cell text-slate-600 text-xs sm:text-sm">{record.workingHours || '0'}</td>
+
+                    {/* Working Hours */}
+                    <td className="table-cell hidden sm:table-cell">
+                      {record.workingHours && record.workingHours !== '0' ? (
+                        <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                          <Clock size={11} />{record.workingHours}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-xs">—</span>
+                      )}
+                    </td>
+
+                    {/* Status */}
                     <td className="table-cell">
                       <span className={
                         record.status === 'present' ? 'badge-green' :
-                        record.status === 'late' ? 'badge-yellow' : 'badge-red'
+                        record.status === 'late'    ? 'badge-yellow' : 'badge-red'
                       }>
                         {record.status}
                       </span>
@@ -176,6 +229,7 @@ export default function AttendancePage() {
         </div>
       </div>
 
+      {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <form onSubmit={handleManualSubmit} className="modal-content p-4 sm:p-6" onClick={e => e.stopPropagation()}>
@@ -188,6 +242,12 @@ export default function AttendancePage() {
               </button>
             </div>
 
+            {/* IST banner */}
+            <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700 mb-4">
+              <Clock size={13} />
+              Current IST: <strong>{formatTime(getCurrentIST())}</strong> (India Standard Time, UTC+5:30)
+            </div>
+
             <div className="space-y-3 sm:space-y-4">
               <div>
                 <label className="form-label">Employee</label>
@@ -198,15 +258,9 @@ export default function AttendancePage() {
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <label className="form-label">Date</label>
-                  <input type="date" name="date" value={date} className="form-input" onChange={e => setDate(e.target.value)} required />
-                </div>
-                <div>
-                  <label className="form-label">Time</label>
-                  <input type="time" name="time" className="form-input" defaultValue={modalType === 'checkIn' ? '09:00' : '17:00'} required />
-                </div>
+              <div>
+                <label className="form-label">Date</label>
+                <input type="date" name="date" value={date} className="form-input" onChange={e => setDate(e.target.value)} required />
               </div>
               <div>
                 <label className="form-label">Remarks (Optional)</label>

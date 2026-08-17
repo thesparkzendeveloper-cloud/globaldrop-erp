@@ -404,7 +404,7 @@ export default function LeadsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Deal Value (£)</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Deal Value (₹)</label>
                   <input
                     type="number"
                     min={0}

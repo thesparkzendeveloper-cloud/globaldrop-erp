@@ -1,13 +1,25 @@
 import type { Country, Branch, Employee, Attendance, Task, Product, Vendor, Transaction, FundRequest, InventoryRequest, Order, Notification } from '@/types';
 
-// All demo data removed — app uses live MongoDB Atlas data only
-export const countries: Country[] = [];
-export const branches: Branch[] = [];
+// Fallback countries — used when DB is empty or not yet seeded
+export const countries: Country[] = [
+  { id: 'c0', name: 'India',          code: 'IN', currency: 'INR', timezone: 'Asia/Kolkata',       status: 'active'   },
+  { id: 'c1', name: 'United States',  code: 'US', currency: 'USD', timezone: 'America/New_York',   status: 'active'   },
+  { id: 'c2', name: 'United Kingdom', code: 'UK', currency: 'GBP', timezone: 'Europe/London',      status: 'active'   },
+  { id: 'c3', name: 'Germany',        code: 'DE', currency: 'EUR', timezone: 'Europe/Berlin',      status: 'active'   },
+  { id: 'c4', name: 'Japan',          code: 'JP', currency: 'JPY', timezone: 'Asia/Tokyo',         status: 'active'   },
+  { id: 'c5', name: 'Australia',      code: 'AU', currency: 'AUD', timezone: 'Australia/Sydney',   status: 'active'   },
+  { id: 'c6', name: 'Canada',         code: 'CA', currency: 'CAD', timezone: 'America/Toronto',    status: 'active'   },
+  { id: 'c7', name: 'France',         code: 'FR', currency: 'EUR', timezone: 'Europe/Paris',       status: 'inactive' },
+  { id: 'c8', name: 'Singapore',      code: 'SG', currency: 'SGD', timezone: 'Asia/Singapore',    status: 'active'   },
+];
+export const branches: Branch[] = [
+  { id: 'b1', name: 'India Branch', country: 'India', address: 'MG Road, Bengaluru', phone: '+91 80 1234 5678', email: 'india@company.com', status: 'active', manager: 'Rajesh Kumar' }
+];
 export const employees: Employee[] = [];
 export const mockUser = {
-  admin: { id: '', name: '', email: '', role: 'admin' as const, branch: '', country: '' },
-  supervisor: { id: '', name: '', email: '', role: 'supervisor' as const, branch: '', country: '' },
-  employee: { id: '', name: '', email: '', role: 'employee' as const, branch: '', country: '' },
+  admin: { id: 'EMP001', name: 'John Smith', email: 'john.smith@company.com', role: 'admin' as const, branch: 'India Branch', country: 'India' },
+  supervisor: { id: 'EMP002', name: 'Sarah Johnson', email: 'sarah.johnson@company.com', role: 'supervisor' as const, branch: 'India Branch', country: 'India' },
+  employee: { id: 'EMP006', name: 'Emily Davis', email: 'emily.davis@company.com', role: 'employee' as const, branch: 'India Branch', country: 'India' },
 };
 export const attendanceRecords: Attendance[] = [];
 export const tasks: Task[] = [];

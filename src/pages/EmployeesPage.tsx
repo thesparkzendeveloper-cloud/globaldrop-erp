@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Pencil, Power, Search, Key, Clock, X, Filter } from 'lucide-react';
+import { Plus, Pencil, Power, Search, Key, X, Filter, Trash2 } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
 
 export default function EmployeesPage() {
-  const { employees, branches, countries, addEmployee, updateEmployee } = useDb();
+  const { employees, branches, countries, addEmployee, updateEmployee, deleteEmployee } = useDb();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<typeof employees[0] | null>(null);
@@ -62,6 +62,15 @@ export default function EmployeesPage() {
 
   const handleResetPassword = () => {
     alert("Password has been reset to default 'password123' for security.");
+  };
+
+  const handleDelete = async (emp: typeof employees[0]) => {
+    if (!window.confirm(`Delete "${emp.name}"? This action cannot be undone.`)) return;
+    try {
+      await deleteEmployee(emp.id);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -163,6 +172,9 @@ export default function EmployeesPage() {
                     </button>
                     <button onClick={() => handleToggleStatus(emp)} className={`p-1.5 hover:bg-slate-100 rounded-lg ${emp.status === 'active' ? 'text-slate-500 hover:text-red-600' : 'text-green-500 hover:text-green-600'}`} title={emp.status === 'active' ? 'Disable' : 'Enable'}>
                       <Power size={14} />
+                    </button>
+                    <button onClick={() => handleDelete(emp)} className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors" title="Delete Employee">
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </td>

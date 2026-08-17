@@ -134,6 +134,7 @@ export interface Order {
   status: 'created' | 'packed' | 'dispatched' | 'delivered';
   createdAt: string;
   updatedAt: string;
+  deadline?: string;
 }
 
 export interface Notification {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Search, Package, AlertTriangle, CheckCircle, XCircle, ArrowRight, Filter, X } from 'lucide-react';
+import { Plus, Search, Package, AlertTriangle, CheckCircle, XCircle, Filter, X } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
-import type { Product } from '@/types';
+
 
 const statusColors: Record<string, string> = {
   available: 'badge-green',
@@ -10,13 +10,13 @@ const statusColors: Record<string, string> = {
 };
 
 export default function InventoryPage() {
-  const { products, branches, addProduct, addInventoryRequest } = useDb();
+  const { products, branches, addProduct } = useDb();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterBranch, setFilterBranch] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
-  const [showWorkflow, setShowWorkflow] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [customCategory, setCustomCategory] = useState('');
+  const [categoryMode, setCategoryMode] = useState<'select' | 'custom'>('select');
 
   const stats = {
     total: products.length,
@@ -59,35 +59,18 @@ export default function InventoryPage() {
     try {
       await addProduct(newProduct);
       setShowModal(false);
+      setCustomCategory('');
+      setCategoryMode('select');
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!selectedProduct) return;
-    const formData = new FormData(e.currentTarget);
-    const qty = parseInt(formData.get('quantity') as string) || 0;
+  // Build category list from existing products + defaults
+  const DEFAULT_CATEGORIES = ['Electronics', 'Furniture', 'Accessories', 'Packaging', 'Clothing', 'Food & Beverage', 'Tools', 'Office Supplies'];
+  const productCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  const allCategories = Array.from(new Set([...DEFAULT_CATEGORIES, ...productCategories])).sort();
 
-    const reqData = {
-      product: selectedProduct.name,
-      quantity: qty,
-      fromBranch: selectedProduct.branch || 'Main Warehouse',
-      toBranch: formData.get('toBranch') as string,
-      reason: formData.get('reason') as string,
-      status: 'pending' as const,
-      requestedBy: 'User',
-      requestDate: new Date().toISOString().split('T')[0]
-    };
-
-    try {
-      await addInventoryRequest(reqData);
-      setSelectedProduct(null);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   return (
     <div className="page-enter">
@@ -97,10 +80,7 @@ export default function InventoryPage() {
           <p className="text-slate-500 mt-0.5 sm:mt-1 text-sm">Manage products and inventory transfers</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowWorkflow(true)} className="btn-secondary text-xs sm:text-sm">
-            <ArrowRight size={16} /> <span className="hidden sm:inline">Workflow</span>
-          </button>
-          <button onClick={() => setShowModal(true)} className="btn-primary text-xs sm:text-sm">
+          <button onClick={() => { setShowModal(true); setCategoryMode('select'); setCustomCategory(''); }} className="btn-primary text-xs sm:text-sm">
             <Plus size={16} /> <span>Add</span>
           </button>
         </div>
@@ -195,7 +175,6 @@ export default function InventoryPage() {
               <th className="table-header text-right">Stock</th>
               <th className="table-header hidden sm:table-cell">Branch</th>
               <th className="table-header">Status</th>
-              <th className="table-header text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -217,82 +196,12 @@ export default function InventoryPage() {
                     {product.status === 'low-stock' ? 'Low' : product.status === 'out-of-stock' ? 'Out' : 'OK'}
                   </span>
                 </td>
-                <td className="table-cell text-right">
-                  <button onClick={() => setSelectedProduct(product)} className="btn-secondary text-xs py-1 px-2 sm:py-1.5 sm:px-3">
-                    Request
-                  </button>
-                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {showWorkflow && (
-        <div className="modal-overlay" onClick={() => setShowWorkflow(false)}>
-          <div className="modal-content p-4 sm:p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-lg sm:text-xl font-semibold text-slate-800">Inventory Workflow</h2>
-              <button onClick={() => setShowWorkflow(false)} className="p-1.5 sm:p-2 hover:bg-slate-100 rounded-lg">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="space-y-3 sm:space-y-4">
-              {['Employee Request', 'Supervisor Approval', 'Inventory Transfer', 'Stock Updated'].map((step, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-7 h-7 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 font-medium text-xs">{i + 1}</div>
-                  <span className="text-xs sm:text-sm">{step}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
-              <button onClick={() => setShowWorkflow(false)} className="btn-secondary flex-1 justify-center">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedProduct && (
-        <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
-          <form onSubmit={handleRequestSubmit} className="modal-content p-4 sm:p-6 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-lg sm:text-xl font-semibold text-slate-800">Request Inventory</h2>
-              <button type="button" onClick={() => setSelectedProduct(null)} className="p-1.5 sm:p-2 hover:bg-slate-100 rounded-lg">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="space-y-3 sm:space-y-4">
-              <div className="p-3 sm:p-4 bg-slate-50 rounded-lg">
-                <p className="font-medium text-slate-800 text-sm sm:text-base">{selectedProduct.name}</p>
-                <p className="text-xs text-slate-500">{selectedProduct.sku}</p>
-                <p className="text-xs sm:text-sm text-slate-600 mt-1">Available Stock: {selectedProduct.availableQuantity}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="form-label">Quantity</label>
-                  <input type="number" name="quantity" className="form-input" placeholder="Qty" required />
-                </div>
-                <div>
-                  <label className="form-label">Destination Branch</label>
-                  <select name="toBranch" className="form-input" required>
-                    {branches.filter(b => b.status === 'active' && b.name !== selectedProduct.branch).map(b => (
-                      <option key={b.id} value={b.name}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="form-label">Reason</label>
-                <textarea name="reason" className="form-input text-sm" rows={2} required />
-              </div>
-            </div>
-            <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
-              <button type="button" onClick={() => setSelectedProduct(null)} className="btn-secondary flex-1 justify-center">Cancel</button>
-              <button type="submit" className="btn-primary flex-1 justify-center">Submit</button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -311,12 +220,44 @@ export default function InventoryPage() {
                 </div>
                 <div>
                   <label className="form-label">Category</label>
-                  <select name="category" className="form-input">
-                    <option value="Electronics">Electronics</option>
-                    <option value="Furniture">Furniture</option>
-                    <option value="Accessories">Accessories</option>
-                    <option value="Packaging">Packaging</option>
-                  </select>
+                  {categoryMode === 'select' ? (
+                    <select
+                      name="category"
+                      className="form-input"
+                      onChange={e => {
+                        if (e.target.value === '__new__') {
+                          setCategoryMode('custom');
+                          setCustomCategory('');
+                        }
+                      }}
+                    >
+                      {allCategories.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                      <option value="__new__">＋ Add new category...</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        name="category"
+                        className="form-input flex-1"
+                        placeholder="Type new category name"
+                        value={customCategory}
+                        onChange={e => setCustomCategory(e.target.value)}
+                        autoFocus
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCategoryMode('select')}
+                        className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg"
+                        title="Back to list"
+                      >
+                        ↩
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
@@ -326,11 +267,11 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="form-label">Cost</label>
-                  <input type="number" name="cost" className="form-input" placeholder="£0" required />
+                  <input type="number" name="cost" className="form-input" placeholder="₹0" required />
                 </div>
                 <div>
                   <label className="form-label">Price</label>
-                  <input type="number" name="price" className="form-input" placeholder="£0" required />
+                  <input type="number" name="price" className="form-input" placeholder="₹0" required />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
