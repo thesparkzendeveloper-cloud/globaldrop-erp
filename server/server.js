@@ -19,6 +19,7 @@ import {
   Notification,
   Setting,
   Lead,
+  Customer,
   AuditLog
 } from './models.js';
 
@@ -482,6 +483,44 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
       },
       unreadNotificationsCount
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Customer Routes
+app.get('/api/customers', async (req, res) => {
+  try {
+    const customers = await Customer.find().sort({ createdAt: -1 });
+    res.json(customers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/api/customers', async (req, res) => {
+  try {
+    const customer = new Customer(req.body);
+    const newCustomer = await customer.save();
+    res.status(201).json(newCustomer);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.put('/api/customers/:id', async (req, res) => {
+  try {
+    const updated = await Customer.findOneAndUpdate({ id: req.params.id }, req.body, { new: true });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.delete('/api/customers/:id', async (req, res) => {
+  try {
+    await Customer.findOneAndDelete({ id: req.params.id });
+    res.json({ message: 'Customer deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

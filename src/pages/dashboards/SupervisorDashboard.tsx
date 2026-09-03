@@ -10,6 +10,7 @@ import {
   CheckCircle,
   XCircle,
   Send,
+  FileText,
 } from 'lucide-react';
 import {
   BarChart,
@@ -97,7 +98,10 @@ export default function SupervisorDashboard() {
         <div className="card p-3 sm:p-4 lg:p-6">
           <h3 className="text-sm sm:text-base font-semibold text-slate-800 mb-3 sm:mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3">
-            <button onClick={() => navigate('/approvals')} className="btn-primary text-xs sm:text-sm justify-center bg-emerald-600 hover:bg-emerald-700">
+            <button onClick={() => navigate('/orders')} className="btn-primary text-xs sm:text-sm justify-center bg-blue-600 hover:bg-blue-700">
+              <FileText size={16} /> Create Invoice
+            </button>
+            <button onClick={() => navigate('/approvals')} className="btn-secondary text-xs sm:text-sm justify-center">
               <Send size={16} /> Request Admin
             </button>
             <button onClick={() => navigate('/tasks')} className="btn-secondary text-xs sm:text-sm justify-center">

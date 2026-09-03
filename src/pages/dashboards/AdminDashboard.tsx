@@ -13,6 +13,7 @@ import {
   ArrowUpRight,
   Target,
   CheckCircle,
+  UserCheck,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -45,6 +46,7 @@ export default function AdminDashboard() {
     fundRequests = [],
     inventoryRequests = [],
     leads = [],
+    customers = [],
   } = useDb();
 
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + (t.amount || 0), 0);
@@ -187,6 +189,7 @@ export default function AdminDashboard() {
         <StatCard title="Total Countries" value={stats.totalCountries} icon={Globe2} iconColor="bg-gradient-to-br from-blue-500 to-blue-600" path="/countries" />
         <StatCard title="Total Branches" value={stats.totalBranches} icon={Building2} iconColor="bg-gradient-to-br from-emerald-500 to-emerald-600" path="/branches" />
         <StatCard title="Total Employees" value={stats.totalEmployees} icon={Users} iconColor="bg-gradient-to-br from-violet-500 to-violet-600" path="/employees" />
+        <StatCard title="Total Customers" value={customers.length} icon={UserCheck} iconColor="bg-gradient-to-br from-indigo-500 to-indigo-600" path="/customers" />
         <StatCard title="Total Orders" value={stats.totalOrders.toLocaleString()} icon={ShoppingCart} iconColor="bg-gradient-to-br from-amber-500 to-amber-600" path="/orders" />
         <StatCard title="Total Inventory" value={stats.totalInventory.toLocaleString()} icon={Package} iconColor="bg-gradient-to-br from-rose-500 to-rose-600" path="/inventory" />
         <StatCard title="Pending" value={stats.pendingRequests} icon={Clock} iconColor="bg-gradient-to-br from-orange-500 to-orange-600" path="/approvals" />

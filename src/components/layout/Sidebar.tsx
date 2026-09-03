@@ -18,6 +18,7 @@ import {
   X,
   LogOut,
   Target,
+  UserCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -36,7 +37,8 @@ const navItems = [
   { path: '/inventory', label: 'Inventory', icon: Package, roles: ['admin', 'supervisor'] },
   { path: '/vendors', label: 'Vendors', icon: TruckIcon, roles: ['admin'] },
   { path: '/finance', label: 'Finance', icon: DollarSign, roles: ['admin', 'supervisor'] },
-  { path: '/orders', label: 'Orders', icon: ShoppingCart, roles: ['admin', 'supervisor'] },
+  { path: '/orders', label: 'Orders', icon: ShoppingCart, roles: ['admin', 'supervisor', 'employee'] },
+  { path: '/customers', label: 'Customers', icon: UserCheck, roles: ['admin', 'supervisor'] },
   { path: '/leads', label: 'Leads', icon: Target, roles: ['admin', 'supervisor'] },
   { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'supervisor'] },
   { path: '/approvals', label: 'Approval Center', icon: CheckSquare, roles: ['admin', 'supervisor'] },

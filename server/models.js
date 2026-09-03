@@ -182,6 +182,19 @@ const leadSchema = new mongoose.Schema({
 
 export const Lead = mongoose.model('Lead', leadSchema);
 
+// Customer Schema
+const customerSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  phone: { type: String, default: '' },
+  email: { type: String, default: '' },
+  address: { type: String, default: '' },
+  branch: { type: String, default: '' },
+  createdAt: { type: String, default: () => new Date().toISOString().split('T')[0] }
+}, { timestamps: true });
+
+export const Customer = mongoose.model('Customer', customerSchema);
+
 // AuditLog Schema
 const auditLogSchema = new mongoose.Schema({
   action: { type: String, required: true },

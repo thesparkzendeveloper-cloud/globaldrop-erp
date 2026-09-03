@@ -12,7 +12,8 @@ import type {
   InventoryRequest,
   Order,
   Notification,
-  Lead
+  Lead,
+  Customer
 } from '@/types';
 import * as dummyData from '@/data/dummyData';
 
@@ -30,6 +31,7 @@ interface DbContextType {
   orders: Order[];
   notifications: Notification[];
   leads: Lead[];
+  customers: Customer[];
   settings: any;
   dashboardStats: any;
   loading: boolean;
@@ -81,6 +83,10 @@ interface DbContextType {
   addLead: (item: Omit<Lead, 'id'>) => Promise<void>;
   updateLead: (id: string, item: Partial<Lead>) => Promise<void>;
   deleteLead: (id: string) => Promise<void>;
+
+  addCustomer: (item: Omit<Customer, 'id'>) => Promise<void>;
+  updateCustomer: (id: string, item: Partial<Customer>) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
 }
 
 const DbContext = createContext<DbContextType | undefined>(undefined);
@@ -101,6 +107,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [settings, setSettings] = useState<any>({});
   const [dashboardStats, setDashboardStats] = useState<any>(dummyData.dashboardStats);
   const [loading, setLoading] = useState(true);
@@ -127,7 +134,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
       const endpoints = [
         'countries', 'branches', 'employees', 'attendance', 'tasks',
         'inventory', 'vendors', 'transactions', 'fund-requests',
-        'inventory-requests', 'orders', 'notifications', 'leads', 'settings', 'dashboard/stats'
+        'inventory-requests', 'orders', 'notifications', 'leads', 'customers', 'settings', 'dashboard/stats'
       ];
 
       const fetchWithTimeout = async (ep: string) => {
@@ -155,7 +162,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
       const [
         countriesData, branchesData, employeesData, attendanceData, tasksData,
         productsData, vendorsData, transactionsData, fundRequestsData,
-        inventoryRequestsData, ordersData, notificationsData, leadsData, settingsData, statsData
+        inventoryRequestsData, ordersData, notificationsData, leadsData, customersData, settingsData, statsData
       ] = results;
 
       // Set state, falling back to dummyData if backend fails or returns null
@@ -172,6 +179,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
       setOrders(ordersData && Array.isArray(ordersData) && ordersData.length > 0 ? ordersData.map(mapMongoId) : dummyData.orders);
       setNotifications(notificationsData && Array.isArray(notificationsData) && notificationsData.length > 0 ? notificationsData.map(mapMongoId) : dummyData.notifications);
       setLeads(leadsData && Array.isArray(leadsData) && leadsData.length > 0 ? leadsData.map(mapMongoId) : (dummyData.leads || []));
+      setCustomers(customersData && Array.isArray(customersData) && customersData.length > 0 ? customersData.map(mapMongoId) : (dummyData.customers || []));
       setSettings(settingsData || {
         companyName: 'GlobalDrop ERP',
         email: 'admin@globaldrop.com',
@@ -405,6 +413,35 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
       setTransactions(prev => [mapMongoId(newTxn), ...prev]);
     }
 
+    // Automatically create or update customer record
+    if (item.customer) {
+      const existingCustomer = customers.find(c => c.name.toLowerCase() === item.customer.toLowerCase() || (item.customerPhone && c.phone === item.customerPhone));
+      if (!existingCustomer) {
+        const custId = 'CUST' + Math.floor(100 + Math.random() * 900);
+        const newCustData = {
+          id: custId,
+          name: item.customer,
+          phone: item.customerPhone || '',
+          email: item.customerEmail || '',
+          branch: item.branch || '',
+          createdAt: item.createdAt || new Date().toISOString().split('T')[0]
+        };
+        makeRequest('customers', 'POST', newCustData).then(newCust => {
+          setCustomers(prev => [mapMongoId(newCust || newCustData), ...prev]);
+        }).catch(() => {
+          setCustomers(prev => [newCustData, ...prev]);
+        });
+      } else if (item.customerPhone || item.customerEmail) {
+        const custUpdated = {
+          phone: item.customerPhone || existingCustomer.phone,
+          email: item.customerEmail || existingCustomer.email,
+          branch: item.branch || existingCustomer.branch
+        };
+        makeRequest(`customers/${existingCustomer.id}`, 'PUT', custUpdated).catch(() => null);
+        setCustomers(prev => prev.map(c => c.id === existingCustomer.id ? { ...c, ...custUpdated } : c));
+      }
+    }
+
     refreshData();
   };
   const updateOrderStatus = async (id: string, status: Order['status']) => {
@@ -441,6 +478,24 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   const deleteLead = async (id: string) => {
     await makeRequest(`leads/${id}`, 'DELETE');
     setLeads(prev => prev.filter(l => l.id !== id));
+    refreshData();
+  };
+
+  // Customers
+  const addCustomer = async (item: Omit<Customer, 'id'>) => {
+    const randomId = 'CUST' + Math.floor(100 + Math.random() * 900);
+    const newItem = await makeRequest('customers', 'POST', { ...item, id: randomId });
+    setCustomers(prev => [mapMongoId(newItem), ...prev]);
+    refreshData();
+  };
+  const updateCustomer = async (id: string, item: Partial<Customer>) => {
+    const updated = await makeRequest(`customers/${id}`, 'PUT', item);
+    setCustomers(prev => prev.map(c => c.id === id ? mapMongoId(updated) : c));
+    refreshData();
+  };
+  const deleteCustomer = async (id: string) => {
+    await makeRequest(`customers/${id}`, 'DELETE');
+    setCustomers(prev => prev.filter(c => c.id !== id));
     refreshData();
   };
 
@@ -496,7 +551,11 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         updateSettings,
         addLead,
         updateLead,
-        deleteLead
+        deleteLead,
+        customers,
+        addCustomer,
+        updateCustomer,
+        deleteCustomer
       }}
     >
       {children}

@@ -9,6 +9,7 @@ import {
   LogOut,
   Plus,
   CheckCircle,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDb } from '@/context/DbContext';
@@ -183,19 +184,22 @@ export default function EmployeeDashboard() {
 
         {/* Branch Stock Card */}
         <div
-          className="card p-3 sm:p-4 lg:p-5 hover:shadow-md transition-shadow group"
+          onClick={() => navigate('/orders')}
+          className="card p-3 sm:p-4 lg:p-5 cursor-pointer hover:shadow-md transition-shadow group"
         >
           <div className="flex items-start justify-between">
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-slate-500">Branch Stock</p>
-              <p className="text-lg sm:text-xl lg:text-2xl font-semibold text-violet-600 mt-0.5 sm:mt-1">{stats.branchInventory}</p>
+              <p className="text-xs sm:text-sm text-slate-500 group-hover:text-blue-600 font-medium transition-colors">Orders & Invoices →</p>
+              <p className="text-sm sm:text-base font-semibold text-blue-600 mt-0.5 sm:mt-1 flex items-center gap-1">
+                <FileText size={16} /> Create Invoice
+              </p>
             </div>
-            <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex-shrink-0">
-              <Package size={16} className="text-white sm:hidden" />
-              <Package size={20} className="text-white hidden sm:block" />
+            <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex-shrink-0">
+              <FileText size={16} className="text-white sm:hidden" />
+              <FileText size={20} className="text-white hidden sm:block" />
             </div>
           </div>
-          <p className="text-xs text-slate-500 mt-2 sm:mt-3">Items at {user?.branch || 'your branch'}</p>
+          <p className="text-xs text-slate-500 mt-2 sm:mt-3">Generate customer bills</p>
         </div>
       </div>
 

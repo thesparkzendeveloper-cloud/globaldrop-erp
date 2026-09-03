@@ -125,9 +125,22 @@ export interface InventoryRequest {
   toBranch: string;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  branch?: string;
+  createdAt?: string;
+}
+
 export interface Order {
   id: string;
   customer: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  customerId?: string;
   branch: string;
   products: { name: string; quantity: number; price: number }[];
   totalAmount: number;

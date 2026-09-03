@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Package, Truck, CheckCircle, Clock, X, Plus, Trash2, Calendar } from 'lucide-react';
+import { Search, Package, Truck, CheckCircle, Clock, X, Plus, Trash2, Calendar, FileText } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
 import { useAuth } from '@/context/AuthContext';
 import type { Order } from '@/types';
+import InvoiceModal from '@/components/InvoiceModal';
 
 const statusSteps = ['created', 'packed', 'dispatched', 'delivered'];
 const statusColors: Record<string, string> = { created: 'badge-blue', packed: 'badge-yellow', dispatched: 'badge-purple', delivered: 'badge-green' };
@@ -22,17 +23,20 @@ const getFutureDate = (days: number) => {
 };
 
 export default function OrdersPage() {
-  const { orders, branches, products: inventoryProducts, updateOrderStatus, addOrder } = useDb();
+  const { orders, branches, products: inventoryProducts, customers = [], updateOrderStatus, addOrder } = useDb();
   const { user } = useAuth();
-  const isSupervisor = user?.role === 'supervisor';
+  const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterBranch, setFilterBranch] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
 
   // Add Order Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [customer, setCustomer] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [branch, setBranch] = useState(branches[0]?.name || 'India Branch');
   const [deadline, setDeadline] = useState(getFutureDate(3));
   const [orderItems, setOrderItems] = useState<ProductItem[]>([
@@ -125,6 +129,8 @@ export default function OrdersPage() {
       const today = new Date().toISOString().split('T')[0];
       await addOrder({
         customer: customer.trim(),
+        customerPhone: customerPhone.trim(),
+        customerEmail: customerEmail.trim(),
         branch: branch || branches[0]?.name || 'India Branch',
         products: validItems,
         totalAmount: calculateTotal(),
@@ -135,6 +141,8 @@ export default function OrdersPage() {
       });
       setShowAddModal(false);
       setCustomer('');
+      setCustomerPhone('');
+      setCustomerEmail('');
       setOrderItems([{ name: '', quantity: 1, price: 0 }]);
       setDeadline(getFutureDate(3));
     } catch (err) {
@@ -219,8 +227,9 @@ export default function OrdersPage() {
               <th className="table-header hidden sm:table-cell">Customer</th>
               <th className="table-header hidden lg:table-cell">Branch</th>
               <th className="table-header">Deadline</th>
-              {!isSupervisor && <th className="table-header text-right">Amount</th>}
+              {isAdmin && <th className="table-header text-right">Amount</th>}
               <th className="table-header">Status</th>
+              <th className="table-header text-right">Invoice</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -239,8 +248,20 @@ export default function OrdersPage() {
                     {order.deadline || getFutureDate(3)}
                   </div>
                 </td>
-                {!isSupervisor && <td className="table-cell text-right font-semibold">₹{order.totalAmount.toLocaleString()}</td>}
+                {isAdmin && <td className="table-cell text-right font-semibold">₹{order.totalAmount.toLocaleString()}</td>}
                 <td className="table-cell"><span className={statusColors[order.status]}>{order.status}</span></td>
+                <td className="table-cell text-right">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInvoiceOrder(order);
+                    }}
+                    className="btn-secondary text-xs px-2.5 py-1 flex items-center gap-1.5 ml-auto text-blue-600 hover:text-blue-700 bg-blue-50 border-blue-200"
+                    title="Generate Customer Invoice"
+                  >
+                    <FileText size={14} /> <span>Invoice</span>
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -261,11 +282,49 @@ export default function OrdersPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Acme Corp"
+                  list="existing-customers-list"
+                  placeholder="e.g. Acme Corp or Customer Name"
                   value={customer}
-                  onChange={e => setCustomer(e.target.value)}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setCustomer(val);
+                    const match = customers.find(c => c.name.toLowerCase() === val.toLowerCase());
+                    if (match) {
+                      if (match.phone) setCustomerPhone(match.phone);
+                      if (match.email) setCustomerEmail(match.email);
+                      if (match.branch) setBranch(match.branch);
+                    }
+                  }}
                   className="form-input w-full"
                 />
+                <datalist id="existing-customers-list">
+                  {customers.map(c => (
+                    <option key={c.id} value={c.name}>{c.phone ? `${c.name} (${c.phone})` : c.name}</option>
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Customer Phone</label>
+                  <input
+                    type="tel"
+                    placeholder="+91 98765 43210"
+                    value={customerPhone}
+                    onChange={e => setCustomerPhone(e.target.value)}
+                    className="form-input w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Customer Email</label>
+                  <input
+                    type="email"
+                    placeholder="customer@example.com"
+                    value={customerEmail}
+                    onChange={e => setCustomerEmail(e.target.value)}
+                    className="form-input w-full text-xs"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -330,7 +389,7 @@ export default function OrdersPage() {
                           required
                         />
                       </div>
-                      {!isSupervisor && (
+                      {isAdmin && (
                         <div className="w-24">
                           <input
                             type="number"
@@ -364,7 +423,7 @@ export default function OrdersPage() {
                 </datalist>
               </div>
 
-              {!isSupervisor && (
+              {isAdmin && (
                 <div className="pt-3 border-t flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-700">Total Amount:</span>
                   <span className="text-lg font-bold text-slate-900">₹{calculateTotal().toFixed(2)}</span>
@@ -430,7 +489,7 @@ export default function OrdersPage() {
                       <p className="text-xs sm:text-sm font-semibold text-slate-800">{p.name}</p>
                       <p className="text-xs text-slate-500 font-medium">{p.quantity} units</p>
                     </div>
-                    {!isSupervisor && <span className="font-bold text-xs sm:text-sm text-slate-700">₹{p.price}</span>}
+                    {isAdmin && <span className="font-bold text-xs sm:text-sm text-slate-700">₹{p.price}</span>}
                   </div>
                 ))}
               </div>
@@ -442,7 +501,7 @@ export default function OrdersPage() {
               <StatusTimeline status={selectedOrder.status} />
             </div>
 
-            {!isSupervisor && (
+            {isAdmin && (
               <div className="pt-3 sm:pt-4 border-t mt-3 sm:mt-4 flex justify-between">
                 <span className="text-xs sm:text-sm text-slate-500">Total Amount</span>
                 <span className="text-lg sm:text-xl font-semibold text-slate-900">₹{selectedOrder.totalAmount.toLocaleString()}</span>
@@ -460,10 +519,27 @@ export default function OrdersPage() {
                 <option value="dispatched">Dispatched</option>
                 <option value="delivered">Delivered</option>
               </select>
-              <button onClick={() => setSelectedOrder(null)} className="btn-primary">Close</button>
+              <button
+                onClick={() => {
+                  setInvoiceOrder(selectedOrder);
+                  setSelectedOrder(null);
+                }}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg flex items-center gap-1.5 transition-colors"
+              >
+                <FileText size={16} /> Create Invoice
+              </button>
+              <button onClick={() => setSelectedOrder(null)} className="btn-secondary">Close</button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Printable Invoice Modal */}
+      {invoiceOrder && (
+        <InvoiceModal
+          order={invoiceOrder}
+          onClose={() => setInvoiceOrder(null)}
+        />
       )}
     </div>
   );

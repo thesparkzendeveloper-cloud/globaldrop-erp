@@ -1,4 +1,4 @@
-import type { Country, Branch, Employee, Attendance, Task, Product, Vendor, Transaction, FundRequest, InventoryRequest, Order, Notification, Lead } from '@/types';
+import type { Country, Branch, Employee, Attendance, Task, Product, Vendor, Transaction, FundRequest, InventoryRequest, Order, Notification, Lead, Customer } from '@/types';
 
 // Initial data — empty collections ready for real entries
 export const countries: Country[] = [];
@@ -27,6 +27,7 @@ export const branchPerformance: any[] = [];
 export const employeeGrowth: any[] = [];
 export const inventoryOverview: any[] = [];
 export const leads: Lead[] = [];
+export const customers: Customer[] = [];
 
 export const dashboardStats = {
   admin: {
