@@ -120,6 +120,8 @@ const inventoryRequestSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   customer: { type: String, required: true },
+  customerPhone: { type: String, default: '' },
+  customerEmail: { type: String, default: '' },
   branch: { type: String, required: true },
   products: [{
     name: { type: String, required: true },
@@ -129,7 +131,8 @@ const orderSchema = new mongoose.Schema({
   totalAmount: { type: Number, required: true },
   status: { type: String, enum: ['created', 'packed', 'dispatched', 'delivered'], default: 'created' },
   createdAt: { type: String, required: true },
-  updatedAt: { type: String, required: true }
+  updatedAt: { type: String, required: true },
+  deadline: { type: String, default: '' }
 }, { timestamps: true });
 
 // Notification Schema

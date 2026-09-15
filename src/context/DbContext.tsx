@@ -139,7 +139,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
 
       const fetchWithTimeout = async (ep: string) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 500);
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
         try {
           const res = await fetch(`${API_BASE_URL}/${ep}`, {
             headers: getHeaders(),
@@ -165,21 +165,42 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         inventoryRequestsData, ordersData, notificationsData, leadsData, customersData, settingsData, statsData
       ] = results;
 
-      // Set state, falling back to dummyData if backend fails or returns null
-      setCountries(countriesData && Array.isArray(countriesData) && countriesData.length > 0 ? countriesData.map(mapMongoId) : dummyData.countries);
-      setBranches(branchesData && Array.isArray(branchesData) && branchesData.length > 0 ? branchesData.map(mapMongoId) : dummyData.branches);
-      setEmployees(employeesData && Array.isArray(employeesData) && employeesData.length > 0 ? employeesData.map(mapMongoId) : dummyData.employees);
-      setAttendanceRecords(attendanceData && Array.isArray(attendanceData) && attendanceData.length > 0 ? attendanceData.map(mapMongoId) : dummyData.attendanceRecords);
-      setTasks(tasksData && Array.isArray(tasksData) && tasksData.length > 0 ? tasksData.map(mapMongoId) : dummyData.tasks);
-      setProducts(productsData && Array.isArray(productsData) && productsData.length > 0 ? productsData.map(mapMongoId) : dummyData.products);
-      setVendors(vendorsData && Array.isArray(vendorsData) && vendorsData.length > 0 ? vendorsData.map(mapMongoId) : dummyData.vendors);
-      setTransactions(transactionsData && Array.isArray(transactionsData) && transactionsData.length > 0 ? transactionsData.map(mapMongoId) : dummyData.transactions);
-      setFundRequests(fundRequestsData && Array.isArray(fundRequestsData) && fundRequestsData.length > 0 ? fundRequestsData.map(mapMongoId) : dummyData.fundRequests);
-      setInventoryRequests(inventoryRequestsData && Array.isArray(inventoryRequestsData) && inventoryRequestsData.length > 0 ? inventoryRequestsData.map(mapMongoId) : dummyData.inventoryRequests);
-      setOrders(ordersData && Array.isArray(ordersData) && ordersData.length > 0 ? ordersData.map(mapMongoId) : dummyData.orders);
-      setNotifications(notificationsData && Array.isArray(notificationsData) && notificationsData.length > 0 ? notificationsData.map(mapMongoId) : dummyData.notifications);
-      setLeads(leadsData && Array.isArray(leadsData) && leadsData.length > 0 ? leadsData.map(mapMongoId) : (dummyData.leads || []));
-      setCustomers(customersData && Array.isArray(customersData) && customersData.length > 0 ? customersData.map(mapMongoId) : (dummyData.customers || []));
+      // Helper to resolve state safely without overwriting local changes when API returns null
+      const resolveState = <T extends { id?: string }>(
+        apiData: any,
+        prevData: T[],
+        dummyDefault: T[]
+      ): T[] => {
+        if (Array.isArray(apiData)) {
+          const mappedApi = apiData.map(mapMongoId);
+          const localItems = prevData.filter(item => item.id && item.id.toString().startsWith('LOCAL_'));
+          if (localItems.length > 0) {
+            const apiIds = new Set(mappedApi.map((i: any) => i.id));
+            const newLocals = localItems.filter(item => !apiIds.has(item.id));
+            return [...newLocals, ...mappedApi];
+          }
+          return mappedApi;
+        }
+        if (prevData && prevData.length > 0) {
+          return prevData;
+        }
+        return dummyDefault;
+      };
+
+      setCountries(prev => resolveState(countriesData, prev, dummyData.countries));
+      setBranches(prev => resolveState(branchesData, prev, dummyData.branches));
+      setEmployees(prev => resolveState(employeesData, prev, dummyData.employees));
+      setAttendanceRecords(prev => resolveState(attendanceData, prev, dummyData.attendanceRecords));
+      setTasks(prev => resolveState(tasksData, prev, dummyData.tasks));
+      setProducts(prev => resolveState(productsData, prev, dummyData.products));
+      setVendors(prev => resolveState(vendorsData, prev, dummyData.vendors));
+      setTransactions(prev => resolveState(transactionsData, prev, dummyData.transactions));
+      setFundRequests(prev => resolveState(fundRequestsData, prev, dummyData.fundRequests));
+      setInventoryRequests(prev => resolveState(inventoryRequestsData, prev, dummyData.inventoryRequests));
+      setOrders(prev => resolveState(ordersData, prev, dummyData.orders));
+      setNotifications(prev => resolveState(notificationsData, prev, dummyData.notifications));
+      setLeads(prev => resolveState(leadsData, prev, dummyData.leads || []));
+      setCustomers(prev => resolveState(customersData, prev, dummyData.customers || []));
       setSettings(settingsData || {
         companyName: 'GlobalDrop ERP',
         email: 'admin@globaldrop.com',
