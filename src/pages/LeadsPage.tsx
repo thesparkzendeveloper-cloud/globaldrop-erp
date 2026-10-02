@@ -220,92 +220,87 @@ export default function LeadsPage() {
       </div>
 
       {/* Leads Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
+      <div className="card overflow-x-auto -mx-3 sm:mx-0">
+        <table className="w-full text-sm min-w-[550px]">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="table-header">Lead</th>
+              <th className="table-header hidden sm:table-cell">Company</th>
+              <th className="table-header hidden md:table-cell">Source</th>
+              <th className="table-header">Status</th>
+              <th className="table-header hidden lg:table-cell">Assigned To</th>
+              <th className="table-header text-right">Value</th>
+              <th className="table-header text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filtered.length === 0 ? (
               <tr>
-                {['Lead', 'Company', 'Source', 'Status', 'Assigned To', 'Value', 'Actions'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
+                <td colSpan={7} className="text-center py-12 text-slate-400">
+                  <Target size={40} className="mx-auto mb-2 opacity-30" />
+                  <p className="font-medium">No leads found</p>
+                  <p className="text-xs mt-1">Add your first lead to get started</p>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-400">
-                    <Target size={40} className="mx-auto mb-2 opacity-30" />
-                    <p className="font-medium">No leads found</p>
-                    <p className="text-xs mt-1">Add your first lead to get started</p>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map(lead => {
-                  const status = STATUS_CONFIG[lead.status];
-                  const SourceIcon = SOURCE_CONFIG[lead.source]?.icon || Target;
-                  return (
-                    <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="font-medium text-slate-800">{lead.name}</p>
-                          <p className="text-xs text-slate-400">{lead.email}</p>
-                          <p className="text-xs text-slate-400">{lead.phone}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">{lead.company || '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className="flex items-center gap-1 text-slate-600">
-                          <SourceIcon size={13} className="text-slate-400" />
-                          {SOURCE_CONFIG[lead.source]?.label || lead.source}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status.color}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
-                          {status.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">{lead.assignedToName}</td>
-                      <td className="px-4 py-3 font-medium text-slate-800">
-                        {lead.value > 0 ? formatCurrency(lead.value, user?.role) : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => openEdit(lead)}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(lead.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-        {filtered.length > 0 && (
-          <div className="px-4 py-3 border-t border-slate-100 text-xs text-slate-500">
-            Showing {filtered.length} of {leads.length} leads
-          </div>
-        )}
+            ) : (
+              filtered.map(lead => {
+                const status = STATUS_CONFIG[lead.status];
+                const SourceIcon = SOURCE_CONFIG[lead.source]?.icon || Target;
+                return (
+                  <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="table-cell">
+                      <div>
+                        <p className="font-semibold text-slate-800 text-xs sm:text-sm">{lead.name}</p>
+                        <p className="text-xs text-slate-400">{lead.email}</p>
+                        <p className="text-xs text-slate-400">{lead.phone}</p>
+                      </div>
+                    </td>
+                    <td className="table-cell hidden sm:table-cell text-slate-600">{lead.company || '—'}</td>
+                    <td className="table-cell hidden md:table-cell">
+                      <span className="flex items-center gap-1 text-slate-600 text-xs">
+                        <SourceIcon size={13} className="text-slate-400" />
+                        {SOURCE_CONFIG[lead.source]?.label || lead.source}
+                      </span>
+                    </td>
+                    <td className="table-cell">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                        {status.label}
+                      </span>
+                    </td>
+                    <td className="table-cell hidden lg:table-cell text-slate-600 text-xs">{lead.assignedToName}</td>
+                    <td className="table-cell text-right font-semibold text-slate-800 text-xs sm:text-sm">
+                      {lead.value > 0 ? formatCurrency(lead.value, user?.role) : '—'}
+                    </td>
+                    <td className="table-cell text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEdit(lead)}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(lead.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Add / Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content p-4 sm:p-6 max-w-lg" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4 border-b pb-3">
               <h2 className="text-lg font-semibold text-slate-800">
                 {editingLead ? 'Edit Lead' : 'Add New Lead'}
               </h2>
@@ -313,7 +308,7 @@ export default function LeadsPage() {
                 <X size={18} />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="space-y-4">
               {/* Name */}
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Full Name *</label>
@@ -446,8 +441,8 @@ export default function LeadsPage() {
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal-content p-6 text-center max-w-sm" onClick={e => e.stopPropagation()}>
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <Trash2 size={20} className="text-red-600" />
             </div>
