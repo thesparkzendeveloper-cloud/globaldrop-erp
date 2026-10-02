@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Plus, X, Calendar, User, MoreVertical } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, X, Calendar, User, MoreVertical, Clock } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
+import { useAuth } from '@/context/AuthContext';
 import type { Task } from '@/types';
 
 const statusColumns = [
@@ -19,17 +20,59 @@ const priorityColors: Record<string, string> = {
 
 export default function TasksPage() {
   const { tasks, employees, addTask, updateTask } = useDb();
+  const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editStatus, setEditStatus] = useState<Task['status']>('pending');
 
-  const getTasksByStatus = (status: Task['status']) => tasks.filter(t => t.status === status);
+  const todayDateStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  const isTaskAssignedToUser = (t: Task, u: any) => {
+    if (!u || !t) return false;
+    const uId = (u.id || '').toLowerCase();
+    const uEmail = (u.email || '').toLowerCase();
+    const uName = (u.name || '').toLowerCase();
+
+    const tAssignedTo = (t.assignedTo || '').toLowerCase();
+    const tAssignedName = (t.assignedToName || '').toLowerCase();
+
+    if (tAssignedTo && uId && tAssignedTo === uId) return true;
+    if (tAssignedTo && uEmail && tAssignedTo === uEmail) return true;
+    if (tAssignedName && uName && tAssignedName === uName) return true;
+
+    // Check matching record in employees array
+    const empRecord = employees.find(e =>
+      (uId && (e.id || '').toLowerCase() === uId) ||
+      (uEmail && (e.email || '').toLowerCase() === uEmail) ||
+      (uName && (e.name || '').toLowerCase() === uName)
+    );
+
+    if (empRecord) {
+      if (tAssignedTo === (empRecord.id || '').toLowerCase() || tAssignedTo === (empRecord.email || '').toLowerCase()) return true;
+      if (tAssignedName === (empRecord.name || '').toLowerCase()) return true;
+    }
+
+    return false;
+  };
+
+  // Filter tasks strictly by role:
+  // Admin: All tasks
+  // Supervisor: ONLY tasks assigned to this supervisor
+  // Employee: ONLY tasks assigned to this employee
+  const visibleTasks = useMemo(() => {
+    if (!user || user.role === 'admin') return tasks;
+
+    return tasks.filter(t => isTaskAssignedToUser(t, user));
+  }, [tasks, user, employees]);
+
+  const getTasksByStatus = (status: Task['status']) => visibleTasks.filter(t => t.status === status);
 
   const handleCreateTask = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const employeeId = formData.get('assignedTo') as string;
     const empName = employees.find(emp => emp.id === employeeId)?.name || 'Unknown';
+    const createdDate = (formData.get('createdDate') as string) || todayDateStr;
 
     const taskData = {
       title: formData.get('title') as string,
@@ -38,8 +81,10 @@ export default function TasksPage() {
       status: 'pending' as const,
       assignedTo: employeeId,
       assignedToName: empName,
+      createdDate,
       dueDate: formData.get('dueDate') as string,
-      progress: 0
+      progress: 0,
+      notes: (formData.get('notes') as string || '').trim()
     };
 
     try {
@@ -104,14 +149,20 @@ export default function TasksPage() {
                   <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
                     <span className={`${priorityColors[task.priority]} text-xs`}>{task.priority}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <User size={10} className="flex-shrink-0" />
-                      <span className="truncate">{task.assignedToName.split(' ')[0]}</span>
+                  <div className="space-y-1 text-xs text-slate-500">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <User size={10} className="flex-shrink-0" />
+                        <span className="truncate">{task.assignedToName.split(' ')[0]}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                        <Clock size={10} />
+                        <span>Created: {task.createdDate || todayDateStr}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-end gap-1 text-slate-600 font-medium">
                       <Calendar size={10} />
-                      <span>{task.dueDate.slice(5)}</span>
+                      <span>Due: {task.dueDate}</span>
                     </div>
                   </div>
                   {task.status !== 'pending' && task.status !== 'completed' && (
@@ -161,18 +212,26 @@ export default function TasksPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="form-label">Due Date</label>
-                  <input type="date" name="dueDate" className="form-input" required />
+                  <label className="form-label">Created Date</label>
+                  <input type="date" name="createdDate" className="form-input bg-slate-50 text-slate-600" defaultValue={todayDateStr} required />
                 </div>
+              </div>
+              <div>
+                <label className="form-label">Due Date</label>
+                <input type="date" name="dueDate" className="form-input" defaultValue={todayDateStr} required />
               </div>
               <div>
                 <label className="form-label">Assign To</label>
                 <select name="assignedTo" className="form-input" required>
                   <option value="">Select employee</option>
                   {employees.filter(e => e.status === 'active').map(e => (
-                    <option key={e.id} value={e.id}>{e.name}</option>
+                    <option key={e.id} value={e.id}>{e.name} ({e.role})</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="form-label">Notes / Special Instructions</label>
+                <textarea name="notes" className="form-input text-xs sm:text-sm" rows={2} placeholder="Add any special task notes..." />
               </div>
             </div>
             <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
@@ -194,14 +253,25 @@ export default function TasksPage() {
             </div>
             <h2 className="text-lg sm:text-xl font-semibold text-slate-800 mb-2">{selectedTask.title}</h2>
             <p className="text-xs sm:text-sm text-slate-600 mb-4">{selectedTask.description}</p>
-            <div className="grid grid-cols-2 gap-2 sm:gap-4 p-3 sm:p-4 bg-slate-50 rounded-lg mb-4 text-xs sm:text-sm">
-              <div className="flex items-center gap-2">
-                <User size={14} className="text-slate-400" />
-                <span className="text-slate-600 truncate">{selectedTask.assignedToName}</span>
+
+            {selectedTask.notes && (
+              <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-lg mb-4 text-xs">
+                <span className="font-semibold text-blue-900 block">📝 Notes:</span>
+                <span className="text-blue-800">{selectedTask.notes}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Calendar size={14} className="text-slate-400" />
-                <span className="text-slate-600">{selectedTask.dueDate}</span>
+            )}
+            <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 rounded-lg mb-4 text-xs">
+              <div>
+                <span className="block text-slate-400">Assigned To</span>
+                <span className="font-medium text-slate-700 truncate block">{selectedTask.assignedToName}</span>
+              </div>
+              <div>
+                <span className="block text-slate-400">Created Date</span>
+                <span className="font-medium text-slate-700 block">{selectedTask.createdDate || todayDateStr}</span>
+              </div>
+              <div>
+                <span className="block text-slate-400">Due Date</span>
+                <span className="font-medium text-slate-700 block">{selectedTask.dueDate}</span>
               </div>
             </div>
             <div className="flex gap-2 sm:gap-3">

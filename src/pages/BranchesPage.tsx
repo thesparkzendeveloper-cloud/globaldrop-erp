@@ -32,7 +32,8 @@ export default function BranchesPage() {
       phone: formData.get('phone') as string,
       email: formData.get('email') as string,
       manager: formData.get('manager') as string,
-      status: formData.get('status') as 'active' | 'inactive'
+      status: formData.get('status') as 'active' | 'inactive',
+      notes: (formData.get('notes') as string || '').trim()
     };
 
     try {
@@ -155,9 +156,12 @@ export default function BranchesPage() {
               </div>
               <div>
                 <label className="form-label">Country</label>
-                <select name="country" className="form-input" defaultValue={editBranch?.country || countries[0]?.name}>
-                  {countries.filter(c => c.status === 'active').map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
+                <select name="country" className="form-input" defaultValue={editBranch?.country || (countries.find(c => c.status === 'active')?.name || 'India')}>
+                  {Array.from(new Set([
+                    ...countries.filter(c => c.status === 'active').map(c => c.name),
+                    'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'Japan', 'Singapore', 'United Arab Emirates'
+                  ])).map(cName => (
+                    <option key={cName} value={cName}>{cName}</option>
                   ))}
                 </select>
               </div>
@@ -190,6 +194,10 @@ export default function BranchesPage() {
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
+              </div>
+              <div>
+                <label className="form-label">Notes / Additional Info</label>
+                <textarea name="notes" className="form-input text-xs sm:text-sm" rows={2} defaultValue={editBranch?.notes ?? ''} placeholder="Branch notes or location details..." />
               </div>
             </div>
 

@@ -29,7 +29,8 @@ export default function CountriesPage() {
       code: formData.get('code') as string,
       currency: formData.get('currency') as string,
       timezone: formData.get('timezone') as string,
-      status: formData.get('status') as 'active' | 'inactive'
+      status: formData.get('status') as 'active' | 'inactive',
+      notes: (formData.get('notes') as string || '').trim()
     };
 
     try {
@@ -184,6 +185,10 @@ export default function CountriesPage() {
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
+              </div>
+              <div>
+                <label className="form-label">Notes / Additional Info</label>
+                <textarea name="notes" className="form-input text-xs sm:text-sm" rows={2} defaultValue={editCountry?.notes ?? ''} placeholder="Country notes or regional details..." />
               </div>
             </div>
 

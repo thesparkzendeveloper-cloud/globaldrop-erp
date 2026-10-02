@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Search, ArrowUpRight, ArrowDownLeft, CreditCard, Wallet, X, CheckCircle, ShieldCheck, Clock, Send } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
 import { useAuth } from '@/context/AuthContext';
+import { formatCurrency, getCurrencySymbol } from '@/utils/currency';
 
 export default function FinancePage() {
   const { transactions, branches, addTransaction, addFundRequest, fundRequests = [] } = useDb();
@@ -38,7 +39,8 @@ export default function FinancePage() {
       category: formData.get('category') as string,
       date: new Date().toISOString().split('T')[0],
       createdBy: user?.name || 'Admin',
-      branch: user?.branch || 'India Branch'
+      branch: user?.branch || 'India Branch',
+      notes: (formData.get('notes') as string || '').trim()
     };
 
     try {
@@ -106,7 +108,7 @@ export default function FinancePage() {
                 <p className="text-xs sm:text-sm text-slate-500 font-medium">Admin Funds</p>
                 <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 rounded">Approved</span>
               </div>
-              <p className="text-base sm:text-lg lg:text-2xl font-bold text-emerald-700">₹{approvedAdminFunds.toLocaleString()}</p>
+              <p className="text-base sm:text-lg lg:text-2xl font-bold text-emerald-700">{formatCurrency(approvedAdminFunds, user?.role)}</p>
             </div>
           </div>
         </div>
@@ -119,7 +121,7 @@ export default function FinancePage() {
             </div>
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-slate-500">Income (Sales)</p>
-              <p className="text-base sm:text-lg lg:text-2xl font-semibold text-blue-600">₹{totalIncome.toLocaleString()}</p>
+              <p className="text-base sm:text-lg lg:text-2xl font-semibold text-blue-600">{formatCurrency(totalIncome, user?.role)}</p>
             </div>
           </div>
         </div>
@@ -132,7 +134,7 @@ export default function FinancePage() {
             </div>
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-slate-500">Expenses</p>
-              <p className="text-base sm:text-lg lg:text-2xl font-semibold text-red-600">₹{totalExpenses.toLocaleString()}</p>
+              <p className="text-base sm:text-lg lg:text-2xl font-semibold text-red-600">{formatCurrency(totalExpenses, user?.role)}</p>
             </div>
           </div>
         </div>
@@ -146,7 +148,7 @@ export default function FinancePage() {
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-slate-500">Available Balance</p>
               <p className={`text-base sm:text-lg lg:text-2xl font-semibold ${netBalance >= 0 ? 'text-violet-600' : 'text-red-600'}`}>
-                ₹{netBalance.toLocaleString()}
+                {formatCurrency(netBalance, user?.role)}
               </p>
             </div>
           </div>
@@ -162,7 +164,7 @@ export default function FinancePage() {
           </div>
           {pendingAdminFunds > 0 && (
             <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-              <Clock size={12} /> Pending: ₹{pendingAdminFunds.toLocaleString()}
+              <Clock size={12} /> Pending: {formatCurrency(pendingAdminFunds, user?.role)}
             </span>
           )}
         </div>
@@ -175,7 +177,7 @@ export default function FinancePage() {
               <div key={req.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-slate-700">₹{req.amount.toLocaleString()}</span>
+                    <span className="text-xs font-semibold text-slate-700">{formatCurrency(req.amount, user?.role)}</span>
                     <span className={`badge text-[10px] ${req.status === 'approved' ? 'badge-green' : req.status === 'pending' ? 'badge-yellow' : 'badge-red'}`}>
                       {req.status === 'approved' ? 'Approved by Admin' : req.status}
                     </span>
@@ -227,7 +229,7 @@ export default function FinancePage() {
                 <td className="table-cell hidden md:table-cell"><span className="badge-slate">{txn.category}</span></td>
                 <td className="table-cell text-right">
                   <span className={txn.type === 'income' ? 'text-emerald-600 font-semibold' : 'text-red-600 font-semibold'}>
-                    {txn.type === 'income' ? '+' : '-'}₹{txn.amount.toLocaleString()}
+                    {txn.type === 'income' ? '+' : '-'}{formatCurrency(txn.amount, user?.role)}
                   </span>
                 </td>
                 <td className="table-cell text-slate-500 text-xs">{txn.date}</td>
@@ -249,8 +251,8 @@ export default function FinancePage() {
             </div>
             <div className="space-y-3 sm:space-y-4">
               <div>
-                <label className="form-label">Requested Amount (₹)</label>
-                <input type="number" name="amount" className="form-input" placeholder="₹0" required />
+                <label className="form-label">Requested Amount ({getCurrencySymbol(user?.role)})</label>
+                <input type="number" name="amount" className="form-input" placeholder={`${getCurrencySymbol(user?.role)}0`} required />
               </div>
               <div>
                 <label className="form-label">Reason / Justification</label>
@@ -294,7 +296,7 @@ export default function FinancePage() {
                 </div>
                 <div>
                   <label className="form-label">Amount</label>
-                  <input type="number" name="amount" className="form-input" placeholder="₹0" required />
+                  <input type="number" name="amount" className="form-input" placeholder={`${getCurrencySymbol(user?.role)}0`} required />
                 </div>
               </div>
               <div>
@@ -311,6 +313,10 @@ export default function FinancePage() {
               <div>
                 <label className="form-label">Description</label>
                 <input type="text" name="description" className="form-input" placeholder="Description" required />
+              </div>
+              <div>
+                <label className="form-label">Notes / Additional Info</label>
+                <textarea name="notes" className="form-input text-xs sm:text-sm" rows={2} placeholder="Add transaction notes or remarks..." />
               </div>
             </div>
             <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">

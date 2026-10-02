@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
 import {
   Country, Branch, Employee, Attendance, Task,
   Product, Vendor, Transaction, FundRequest,
@@ -7,13 +12,15 @@ import {
 } from './models.js';
 
 dotenv.config();
+dotenv.config({ path: '../.env' });
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/globaldrop-erp';
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 async function clearAll() {
   try {
-    console.log('Connecting to MongoDB...');
-    await mongoose.connect(MONGODB_URI);
+    console.log('Connecting to MongoDB Atlas...');
+    if (!MONGODB_URI) throw new Error('MONGO_URI is missing in .env');
+    await mongoose.connect(MONGODB_URI, { dbName: 'globalERP' });
     console.log('Connected.');
 
     await Country.deleteMany({});

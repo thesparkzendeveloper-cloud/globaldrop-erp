@@ -234,6 +234,7 @@ function VendorForm({
       phone: fd.get('phone') as string,
       country: fd.get('country') as string,
       products: productTags.length > 0 ? productTags : ['General'],
+      notes: (fd.get('notes') as string || '').trim(),
     });
   };
 
@@ -260,11 +261,26 @@ function VendorForm({
       {/* Country */}
       <div>
         <label className="form-label">Country</label>
-        <select name="country" className="form-input" defaultValue={vendor?.country ?? ''} required>
-          {countries.filter(c => c.status === 'active').map(c => (
-            <option key={c.id} value={c.name}>{c.name}</option>
+        <select name="country" className="form-input" defaultValue={vendor?.country || (countries.find(c => c.status === 'active')?.name || 'India')} required>
+          {Array.from(new Set([
+            ...countries.filter(c => c.status === 'active').map(c => c.name),
+            'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'Japan', 'Singapore', 'United Arab Emirates'
+          ])).map(cName => (
+            <option key={cName} value={cName}>{cName}</option>
           ))}
         </select>
+      </div>
+
+      {/* Notes / Instructions */}
+      <div>
+        <label className="form-label">Notes / Additional Info</label>
+        <textarea
+          name="notes"
+          className="form-input text-xs sm:text-sm"
+          rows={2}
+          defaultValue={vendor?.notes ?? ''}
+          placeholder="Add vendor notes, terms or instructions..."
+        />
       </div>
 
       {/* Products Tag Input */}

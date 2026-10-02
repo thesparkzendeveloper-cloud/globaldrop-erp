@@ -262,8 +262,11 @@ export default function LocationsPage() {
                     className="form-input py-1.5 px-2 text-xs w-full sm:w-44"
                   >
                     <option value="">Select Country</option>
-                    {countries.map(c => (
-                      <option key={c.id} value={c.name}>{c.name} {c.status === 'inactive' ? '(Inactive)' : ''}</option>
+                    {Array.from(new Set([
+                      ...countries.map(c => c.name),
+                      'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'Japan', 'Singapore', 'United Arab Emirates'
+                    ])).map(cName => (
+                      <option key={cName} value={cName}>{cName}</option>
                     ))}
                   </select>
                   <button 

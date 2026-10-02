@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Plus, Search, Package, AlertTriangle, CheckCircle, XCircle, Filter, X } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
-
+import { useAuth } from '@/context/AuthContext';
+import { formatCurrency, getCurrencySymbol } from '@/utils/currency';
 
 const statusColors: Record<string, string> = {
   available: 'badge-green',
@@ -11,6 +12,7 @@ const statusColors: Record<string, string> = {
 
 export default function InventoryPage() {
   const { products, branches, addProduct } = useDb();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterBranch, setFilterBranch] = useState<string>('all');
@@ -53,7 +55,8 @@ export default function InventoryPage() {
       availableQuantity: qty,
       reservedQuantity: 0,
       branch: formData.get('branch') as string,
-      status: computedStatus
+      status: computedStatus,
+      notes: (formData.get('notes') as string || '').trim()
     };
 
     try {
@@ -186,7 +189,7 @@ export default function InventoryPage() {
                     <p className="text-xs text-slate-500">{product.sku}</p>
                   </div>
                 </td>
-                <td className="table-cell hidden md:table-cell text-slate-600 text-xs sm:text-sm">${product.sellingPrice}</td>
+                <td className="table-cell hidden md:table-cell text-slate-600 text-xs sm:text-sm">{formatCurrency(product.sellingPrice, user?.role)}</td>
                 <td className="table-cell text-right">
                   <span className="font-medium text-xs sm:text-sm">{product.availableQuantity}</span>
                 </td>
@@ -267,11 +270,11 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="form-label">Cost</label>
-                  <input type="number" name="cost" className="form-input" placeholder="₹0" required />
+                  <input type="number" name="cost" className="form-input" placeholder={`${getCurrencySymbol(user?.role)}0`} required />
                 </div>
                 <div>
                   <label className="form-label">Price</label>
-                  <input type="number" name="price" className="form-input" placeholder="₹0" required />
+                  <input type="number" name="price" className="form-input" placeholder={`${getCurrencySymbol(user?.role)}0`} required />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -291,6 +294,10 @@ export default function InventoryPage() {
                     <option key={b.id} value={b.name}>{b.name}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="form-label">Notes / Additional Info</label>
+                <textarea name="notes" className="form-input text-xs sm:text-sm" rows={2} placeholder="Add product notes or details..." />
               </div>
             </div>
             <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">

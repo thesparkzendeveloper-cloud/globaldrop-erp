@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
 import {
   Country,
   Branch,
@@ -19,8 +24,9 @@ import {
 } from './models.js';
 
 dotenv.config();
+dotenv.config({ path: '../.env' });
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/globaldrop-erp';
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 const countries = [];
 const branches = [];
@@ -51,8 +57,9 @@ const defaultSettings = {
 
 async function seed() {
   try {
-    await mongoose.connect(MONGODB_URI);
-    console.log('Connected to MongoDB for seeding...');
+    if (!MONGODB_URI) throw new Error('MONGO_URI is missing in .env');
+    await mongoose.connect(MONGODB_URI, { dbName: 'globalERP' });
+    console.log('Connected to MongoDB Atlas (globalERP) for seeding...');
 
     // Clear existing data
     await Country.deleteMany({});

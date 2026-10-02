@@ -189,9 +189,9 @@ export default function EmployeeDashboard() {
         >
           <div className="flex items-start justify-between">
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-slate-500 group-hover:text-blue-600 font-medium transition-colors">Orders & Invoices →</p>
+              <p className="text-xs sm:text-sm text-slate-500 group-hover:text-blue-600 font-medium transition-colors">Orders List →</p>
               <p className="text-sm sm:text-base font-semibold text-blue-600 mt-0.5 sm:mt-1 flex items-center gap-1">
-                <FileText size={16} /> Create Invoice
+                <FileText size={16} /> View Orders
               </p>
             </div>
             <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex-shrink-0">
@@ -199,7 +199,7 @@ export default function EmployeeDashboard() {
               <FileText size={20} className="text-white hidden sm:block" />
             </div>
           </div>
-          <p className="text-xs text-slate-500 mt-2 sm:mt-3">Generate customer bills</p>
+          <p className="text-xs text-slate-500 mt-2 sm:mt-3">View assigned customer orders</p>
         </div>
       </div>
 

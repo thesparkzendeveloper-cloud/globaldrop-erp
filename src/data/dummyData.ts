@@ -3,10 +3,7 @@ import type { Country, Branch, Employee, Attendance, Task, Product, Vendor, Tran
 // Initial data — empty collections ready for real entries
 export const countries: Country[] = [];
 export const branches: Branch[] = [];
-export const employees: Employee[] = [
-  { id: 'EMP001', name: 'Admin', email: 'Veloraelise@gmail.com', phone: '', role: 'admin', country: '', branch: '', joinDate: '2026-01-01', status: 'active' },
-  { id: 'EMP002', name: 'Supervisor', email: 'Shalinishalu121997@gmail.com', phone: '', role: 'supervisor', country: '', branch: '', joinDate: '2026-01-01', status: 'active' },
-];
+export const employees: Employee[] = [];
 
 export const mockUser = {
   admin: { id: 'EMP001', name: 'Admin', email: 'Veloraelise@gmail.com', role: 'admin' as const, branch: '', country: '' },
@@ -33,7 +30,7 @@ export const dashboardStats = {
   admin: {
     totalCountries: 0,
     totalBranches: 0,
-    totalEmployees: 2,
+    totalEmployees: 0,
     totalOrders: 0,
     totalInventory: 0,
     pendingRequests: 0,

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { BarChart3, TrendingUp, Users, Package, DollarSign, Clock, Download, ArrowDownLeft, ArrowUpRight, FileSpreadsheet } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useDb } from '@/context/DbContext';
+import { useAuth } from '@/context/AuthContext';
+import { formatCurrency, getCurrencySymbol } from '@/utils/currency';
 
 const tabs = [
   { id: 'finance', label: 'Finance', icon: DollarSign },
@@ -37,6 +39,7 @@ function exportToExcel(rows: Record<string, any>[], filename: string) {
 
 export default function ReportsPage() {
   const { transactions = [], products: inventory = [], attendanceRecords = [], tasks = [] } = useDb();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('finance');
 
   // Finance filter state
@@ -206,14 +209,14 @@ export default function ReportsPage() {
                 <ArrowDownLeft size={14} className="text-emerald-500" />
                 <p className="text-xs sm:text-sm text-slate-500">Income</p>
               </div>
-              <p className="text-lg sm:text-2xl font-semibold text-emerald-600">₹{totalIncome.toLocaleString()}</p>
+              <p className="text-lg sm:text-2xl font-semibold text-emerald-600">{formatCurrency(totalIncome, user?.role)}</p>
             </div>
             <div className="card p-3 sm:p-5">
               <div className="flex items-center gap-2 mb-1">
                 <ArrowUpRight size={14} className="text-red-500" />
                 <p className="text-xs sm:text-sm text-slate-500">Expense</p>
               </div>
-              <p className="text-lg sm:text-2xl font-semibold text-red-600">₹{totalExpenses.toLocaleString()}</p>
+              <p className="text-lg sm:text-2xl font-semibold text-red-600">{formatCurrency(totalExpenses, user?.role)}</p>
             </div>
             <div className="card p-3 sm:p-5">
               <div className="flex items-center gap-2 mb-1">
@@ -221,7 +224,7 @@ export default function ReportsPage() {
                 <p className="text-xs sm:text-sm text-slate-500">Net Profit</p>
               </div>
               <p className={`text-lg sm:text-2xl font-semibold ${netProfit >= 0 ? 'text-violet-600' : 'text-red-600'}`}>
-                ₹{netProfit.toLocaleString()}
+                {formatCurrency(netProfit, user?.role)}
               </p>
             </div>
           </div>
@@ -327,7 +330,7 @@ export default function ReportsPage() {
                         </span>
                       </td>
                       <td className={`table-cell text-right text-sm font-semibold ${t.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {t.type === 'income' ? '+' : '-'}₹{t.amount.toLocaleString()}
+                        {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount, user?.role)}
                       </td>
                     </tr>
                   ))}
@@ -338,7 +341,7 @@ export default function ReportsPage() {
                       <td colSpan={4} className="table-cell text-xs font-semibold text-slate-600 hidden md:table-cell">Total ({filteredTxns.length} rows)</td>
                       <td colSpan={4} className="table-cell text-xs font-semibold text-slate-600 md:hidden">Total</td>
                       <td className="table-cell text-right font-bold text-sm text-slate-800">
-                        ₹{filteredTxns.reduce((a, t) => a + (t.type === 'income' ? t.amount : -t.amount), 0).toLocaleString()}
+                        {formatCurrency(filteredTxns.reduce((a, t) => a + (t.type === 'income' ? t.amount : -t.amount), 0), user?.role)}
                       </td>
                     </tr>
                   </tfoot>
@@ -353,10 +356,10 @@ export default function ReportsPage() {
       {activeTab === 'revenue' && (
         <div className="space-y-3 sm:space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-            <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Total Revenue</p><p className="text-lg sm:text-2xl font-semibold text-emerald-600">₹{totalIncome.toLocaleString()}</p></div>
-            <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Monthly Avg</p><p className="text-lg sm:text-2xl font-semibold text-slate-800">₹{monthlyAvg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p></div>
+            <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Total Revenue</p><p className="text-lg sm:text-2xl font-semibold text-emerald-600">{formatCurrency(totalIncome, user?.role)}</p></div>
+            <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Monthly Avg</p><p className="text-lg sm:text-2xl font-semibold text-slate-800">{formatCurrency(monthlyAvg, user?.role)}</p></div>
             <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Growth</p><p className="text-lg sm:text-2xl font-semibold text-blue-600">7.5%</p></div>
-            <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Net Profit</p><p className="text-lg sm:text-2xl font-semibold text-violet-600">₹{netProfit.toLocaleString()}</p></div>
+            <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Net Profit</p><p className="text-lg sm:text-2xl font-semibold text-violet-600">{formatCurrency(netProfit, user?.role)}</p></div>
           </div>
           <div className="card p-3 sm:p-6">
             <h3 className="text-sm sm:text-base font-semibold text-slate-800 mb-3 sm:mb-4">Revenue vs Expenses</h3>
@@ -365,8 +368,8 @@ export default function ReportsPage() {
                 <AreaChart data={revenueData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} />
-                  <YAxis stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} width={40} tickFormatter={v => `₹${v / 1000}k`} />
-                  <Tooltip formatter={(v: any) => `₹${v.toLocaleString()}`} />
+                  <YAxis stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} width={40} tickFormatter={v => `${getCurrencySymbol(user?.role)}${v / 1000}k`} />
+                  <Tooltip formatter={(v: any) => formatCurrency(v, user?.role)} />
                   <Legend wrapperStyle={{ fontSize: '11px' }} />
                   <Area type="monotone" dataKey="revenue" stroke="#10b981" fill="#6ee7b7" fillOpacity={0.4} name="Revenue" />
                   <Area type="monotone" dataKey="expenses" stroke="#ef4444" fill="#fca5a5" fillOpacity={0.4} name="Expenses" />
@@ -382,7 +385,7 @@ export default function ReportsPage() {
         <div className="space-y-3 sm:space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
             <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Products</p><p className="text-lg sm:text-2xl font-semibold text-slate-800">{totalProductsCount}</p></div>
-            <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Value</p><p className="text-lg sm:text-2xl font-semibold text-emerald-600">₹{totalInventoryValue.toLocaleString()}</p></div>
+            <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Value</p><p className="text-lg sm:text-2xl font-semibold text-emerald-600">{formatCurrency(totalInventoryValue, user?.role)}</p></div>
             <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Low Stock</p><p className="text-lg sm:text-2xl font-semibold text-amber-600">{lowStockCount}</p></div>
             <div className="card p-3 sm:p-5"><p className="text-xs sm:text-sm text-slate-500">Out of Stock</p><p className="text-lg sm:text-2xl font-semibold text-red-600">{outOfStockCount}</p></div>
           </div>

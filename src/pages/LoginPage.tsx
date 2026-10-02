@@ -100,9 +100,6 @@ export default function LoginPage() {
                 />
                 <span className="text-xs sm:text-sm text-slate-600">Remember me</span>
               </label>
-              <button type="button" className="text-xs sm:text-sm text-blue-600 hover:underline whitespace-nowrap">
-                Forgot Password?
-              </button>
             </div>
 
             <button type="submit" className="btn-primary w-full justify-center py-2.5 sm:py-3">

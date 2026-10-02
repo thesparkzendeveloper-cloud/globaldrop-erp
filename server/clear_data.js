@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
 import {
   Country,
   Branch,
@@ -13,17 +18,22 @@ import {
   InventoryRequest,
   Order,
   Notification,
-  Setting
+  Setting,
+  Lead,
+  Customer,
+  AuditLog
 } from './models.js';
 
 dotenv.config();
+dotenv.config({ path: '../.env' });
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/globaldrop-erp';
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 async function clearData() {
   try {
-    console.log('Connecting to MongoDB...');
-    await mongoose.connect(MONGODB_URI);
+    console.log('Connecting to MongoDB Atlas...');
+    if (!MONGODB_URI) throw new Error('MONGO_URI is missing in .env');
+    await mongoose.connect(MONGODB_URI, { dbName: 'globalERP' });
     console.log('Connected to MongoDB.');
 
     // Clear all tables
@@ -60,6 +70,15 @@ async function clearData() {
     console.log('Clearing Notifications...');
     await Notification.deleteMany({});
 
+    console.log('Clearing Customers...');
+    await Customer.deleteMany({});
+
+    console.log('Clearing Leads...');
+    await Lead.deleteMany({});
+
+    console.log('Clearing Audit Logs...');
+    await AuditLog.deleteMany({});
+
     // Keep settings, but reset to empty/defaults if needed
     console.log('Clearing/Resetting Settings...');
     await Setting.deleteMany({});
@@ -73,9 +92,9 @@ async function clearData() {
     });
 
     // Delete all employees except the login users
-    console.log('Cleaning Employee list (retaining Admin, Supervisor, and Employee test accounts)...');
+    console.log('Cleaning Employee list (retaining Admin, Supervisor)...');
     await Employee.deleteMany({
-      email: { $nin: ['Veloraelise@gmail.com', 'Shalinishalu121997@gmail.com'] }
+      email: { $nin: ['Veloraelise@gmail.com', 'Shalinishalu121997@gmail.com', 'admin@globaldrop.com'] }
     });
 
     console.log('Database wiped clean. Only authenticated user accounts are left.');

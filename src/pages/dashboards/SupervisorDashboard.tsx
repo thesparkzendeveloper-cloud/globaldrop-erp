@@ -22,6 +22,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useDb } from '@/context/DbContext';
+import { useAuth } from '@/context/AuthContext';
+import { formatCurrency, getCurrencySymbol } from '@/utils/currency';
 
 const weeklyData = [
   { day: 'Mon', tasks: 12, completed: 8 },
@@ -35,6 +37,7 @@ const weeklyData = [
 
 export default function SupervisorDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { tasks = [], fundRequests = [], inventoryRequests = [], products = [] } = useDb();
   
   const stats = {
@@ -71,7 +74,7 @@ export default function SupervisorDashboard() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
-        <StatCard title="Budget" value={`₹${(stats.availableBudget / 1000).toFixed(0)}k`} icon={DollarSign} bgColor="bg-gradient-to-br from-emerald-500 to-emerald-600" textColor="text-emerald-600" path="/finance" />
+        <StatCard title="Budget" value={`${getCurrencySymbol(user?.role)}${(stats.availableBudget / 1000).toFixed(0)}k`} icon={DollarSign} bgColor="bg-gradient-to-br from-emerald-500 to-emerald-600" textColor="text-emerald-600" path="/finance" />
         <StatCard title="Pending" value={stats.pendingRequests} icon={Clock} bgColor="bg-gradient-to-br from-amber-500 to-amber-600" textColor="text-amber-600" path="/approvals" />
         <StatCard title="Inventory" value={stats.pendingInventory} icon={Package} bgColor="bg-gradient-to-br from-blue-500 to-blue-600" textColor="text-blue-600" path="/inventory" />
         <StatCard title="Tasks" value={stats.assignedTasks} icon={ClipboardList} bgColor="bg-gradient-to-br from-violet-500 to-violet-600" textColor="text-violet-600" path="/tasks" />
@@ -99,7 +102,7 @@ export default function SupervisorDashboard() {
           <h3 className="text-sm sm:text-base font-semibold text-slate-800 mb-3 sm:mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3">
             <button onClick={() => navigate('/orders')} className="btn-primary text-xs sm:text-sm justify-center bg-blue-600 hover:bg-blue-700">
-              <FileText size={16} /> Create Invoice
+              <FileText size={16} /> View Orders
             </button>
             <button onClick={() => navigate('/approvals')} className="btn-secondary text-xs sm:text-sm justify-center">
               <Send size={16} /> Request Admin
@@ -127,7 +130,7 @@ export default function SupervisorDashboard() {
             {fundRequests.filter(r => r.status === 'pending').slice(0, 3).map(req => (
               <div key={req.id} className="flex items-center justify-between p-2.5 sm:p-3 bg-slate-50 rounded-lg">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm font-medium text-slate-700">₹{req.amount.toLocaleString()}</p>
+                  <p className="text-xs sm:text-sm font-medium text-slate-700">{formatCurrency(req.amount, user?.role)}</p>
                   <p className="text-xs text-slate-500 truncate">{req.reason}</p>
                 </div>
                 <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
@@ -144,22 +147,53 @@ export default function SupervisorDashboard() {
         </div>
 
         <div className="card p-3 sm:p-4 lg:p-6">
-          <h3 className="text-sm sm:text-base font-semibold text-slate-800 mb-3 sm:mb-4">Active Tasks</h3>
-          <div className="space-y-2 sm:space-y-3">
-            {tasks.filter(t => t.status === 'in-progress').slice(0, 4).map(task => (
-              <div key={task.id} className="p-2.5 sm:p-3 bg-slate-50 rounded-lg">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs sm:text-sm font-medium text-slate-700 truncate">{task.title}</p>
-                  <span className="text-xs text-slate-500 flex-shrink-0">{task.dueDate}</span>
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${task.progress}%` }} />
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-sm sm:text-base font-semibold text-slate-800 flex items-center gap-2">
+              <ClipboardList size={16} className="text-violet-600" />
+              Assigned Tasks
+            </h3>
+            <button onClick={() => navigate('/tasks')} className="text-xs text-blue-600 hover:underline font-medium">View all →</button>
+          </div>
+          <div className="space-y-2.5 sm:space-y-3 max-h-80 overflow-y-auto">
+            {tasks.length === 0 ? (
+              <p className="text-xs text-slate-500">No assigned tasks found.</p>
+            ) : (
+              tasks.slice(0, 5).map(task => (
+                <div
+                  key={task.id}
+                  onClick={() => navigate('/tasks')}
+                  className="p-2.5 sm:p-3 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200/70 hover:border-blue-300 transition-all cursor-pointer group"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <p className="text-xs sm:text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">{task.title}</p>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <span className={`badge text-[10px] ${task.priority === 'high' || task.priority === 'critical' ? 'badge-red' : task.priority === 'medium' ? 'badge-yellow' : 'badge-slate'}`}>
+                        {task.priority}
+                      </span>
+                      <span className={`badge text-[10px] ${task.status === 'completed' ? 'badge-green' : task.status === 'in_progress' ? 'badge-blue' : 'badge-yellow'}`}>
+                        {task.status?.replace('_', ' ') || 'pending'}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-xs text-slate-600 w-8">{task.progress}%</span>
+                  <p className="text-xs text-slate-500 line-clamp-1 mb-2">{task.description}</p>
+                  <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-slate-500 pt-2 border-t border-slate-200/60">
+                    <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                      👤 {task.assignedToName}
+                    </span>
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span className="text-slate-400">Created: {task.createdDate || 'Today'}</span>
+                      <span className="text-slate-600 font-medium">Due: {task.dueDate}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${task.progress}%` }} />
+                    </div>
+                    <span className="text-[11px] text-slate-500 w-8 text-right">{task.progress}%</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

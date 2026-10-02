@@ -1,15 +1,22 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
 import { Employee } from './models.js';
 
 dotenv.config();
+dotenv.config({ path: '../.env' });
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/globaldrop-erp';
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 async function diagnose() {
   try {
     console.log('Connecting to database...');
-    await mongoose.connect(MONGODB_URI);
+    if (!MONGODB_URI) throw new Error('MONGO_URI is missing in .env');
+    await mongoose.connect(MONGODB_URI, { dbName: 'globalERP' });
     console.log('Connected successfully.');
 
     const employees = await Employee.find();

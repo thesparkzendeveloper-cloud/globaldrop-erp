@@ -7,6 +7,7 @@ import {
 import { useDb } from '@/context/DbContext';
 import { useAuth } from '@/context/AuthContext';
 import type { Lead } from '@/types';
+import { formatCurrency, getCurrencySymbol } from '@/utils/currency';
 
 const STATUS_CONFIG = {
   new:       { label: 'New',       color: 'bg-blue-100 text-blue-700',   dot: 'bg-blue-500' },
@@ -131,9 +132,6 @@ export default function LeadsPage() {
     setDeleteConfirm(null);
   };
 
-  const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(v);
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -162,7 +160,7 @@ export default function LeadsPage() {
           { label: 'Qualified', value: stats.qualified, icon: TrendingUp, color: 'from-purple-500 to-purple-600' },
           { label: 'Converted', value: stats.converted, icon: CheckCircle, color: 'from-green-500 to-green-600' },
           { label: 'Lost', value: stats.lost, icon: X, color: 'from-red-500 to-red-600' },
-          { label: 'Revenue', value: formatCurrency(stats.totalValue), icon: DollarSign, color: 'from-emerald-500 to-emerald-600' },
+          { label: 'Revenue', value: formatCurrency(stats.totalValue, user?.role), icon: DollarSign, color: 'from-emerald-500 to-emerald-600' },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
             <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center mb-2`}>
@@ -271,7 +269,7 @@ export default function LeadsPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-600">{lead.assignedToName}</td>
                       <td className="px-4 py-3 font-medium text-slate-800">
-                        {lead.value > 0 ? formatCurrency(lead.value) : '—'}
+                        {lead.value > 0 ? formatCurrency(lead.value, user?.role) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
@@ -404,7 +402,7 @@ export default function LeadsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Deal Value (₹)</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Deal Value ({getCurrencySymbol(user?.role)})</label>
                   <input
                     type="number"
                     min={0}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Phone, Mail, MapPin, ShoppingCart, Plus, X, Calendar, Package, CheckCircle, Clock, Truck } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
 import { useAuth } from '@/context/AuthContext';
+import { formatCurrency } from '@/utils/currency';
 import type { Customer, Order } from '@/types';
 
 const statusColors: Record<string, string> = { created: 'badge-blue', packed: 'badge-yellow', dispatched: 'badge-purple', delivered: 'badge-green' };
@@ -22,6 +23,7 @@ export default function CustomersPage() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
   const [branch, setBranch] = useState(branches[0]?.name || 'India Branch');
   const [submitting, setSubmitting] = useState(false);
 
@@ -58,6 +60,7 @@ export default function CustomersPage() {
         phone: phone.trim(),
         email: email.trim(),
         address: address.trim(),
+        notes: notes.trim(),
         branch: branch || branches[0]?.name || 'India Branch',
         createdAt: new Date().toISOString().split('T')[0]
       });
@@ -66,6 +69,7 @@ export default function CustomersPage() {
       setPhone('');
       setEmail('');
       setAddress('');
+      setNotes('');
     } catch (err) {
       console.error(err);
     } finally {
@@ -102,7 +106,7 @@ export default function CustomersPage() {
           <div className="card p-4 col-span-2 sm:col-span-1">
             <p className="text-xs text-slate-500 font-medium">Total Customer Revenue</p>
             <p className="text-xl sm:text-2xl font-bold text-emerald-600 mt-1">
-              ₹{orders.reduce((acc, o) => acc + (o.totalAmount || 0), 0).toLocaleString()}
+              {formatCurrency(orders.reduce((acc, o) => acc + (o.totalAmount || 0), 0), user?.role)}
             </p>
           </div>
         )}
@@ -197,7 +201,7 @@ export default function CustomersPage() {
                     </td>
                     {isAdmin && (
                       <td className="table-cell text-right font-bold text-emerald-600">
-                        ₹{totalSpent.toLocaleString()}
+                        {formatCurrency(totalSpent, user?.role)}
                       </td>
                     )}
                     <td className="table-cell text-right">
@@ -279,6 +283,16 @@ export default function CustomersPage() {
                   className="form-input w-full text-xs"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Notes / Additional Info</label>
+                <textarea
+                  rows={2}
+                  placeholder="Customer notes, preferences or instructions..."
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  className="form-input w-full text-xs"
+                />
+              </div>
               <div className="flex gap-2 justify-end pt-2">
                 <button type="button" onClick={() => setShowAddModal(false)} className="px-3.5 py-1.5 text-xs border rounded-lg text-slate-600 hover:bg-slate-50">Cancel</button>
                 <button type="submit" disabled={submitting || !name.trim()} className="btn-primary text-xs">{submitting ? 'Adding...' : 'Add Customer'}</button>
@@ -324,7 +338,7 @@ export default function CustomersPage() {
               {isAdmin && (
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
                   <p className="text-xs text-slate-500 font-medium">Total Amount Spent</p>
-                  <p className="text-lg font-bold text-slate-900 mt-0.5">₹{selectedCustomerTotal.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-slate-900 mt-0.5">{formatCurrency(selectedCustomerTotal, user?.role)}</p>
                 </div>
               )}
             </div>
@@ -357,7 +371,7 @@ export default function CustomersPage() {
                         {order.products.map((p, idx) => (
                           <div key={idx} className="flex justify-between text-slate-700">
                             <span>{p.name} <span className="text-slate-400 font-medium">x {p.quantity}</span></span>
-                            {isAdmin && <span className="font-semibold text-slate-800">₹{(p.price * p.quantity).toLocaleString()}</span>}
+                            {isAdmin && <span className="font-semibold text-slate-800">{formatCurrency(p.price * p.quantity, user?.role)}</span>}
                           </div>
                         ))}
                       </div>
@@ -366,7 +380,7 @@ export default function CustomersPage() {
                         <span className="text-slate-500">Branch: <strong className="text-slate-700">{order.branch}</strong></span>
                         {isAdmin && (
                           <span className="text-sm font-bold text-slate-900">
-                            Total: ₹{order.totalAmount.toLocaleString()}
+                            Total: {formatCurrency(order.totalAmount, user?.role)}
                           </span>
                         )}
                       </div>

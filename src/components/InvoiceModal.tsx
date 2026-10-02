@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
 import { X, Printer, Download, Building2, Phone, Mail, FileText, CheckCircle } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
+import { useAuth } from '@/context/AuthContext';
+import { formatCurrency } from '@/utils/currency';
 import type { Order } from '@/types';
 
 interface InvoiceModalProps {
@@ -10,6 +12,7 @@ interface InvoiceModalProps {
 
 export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
   const { settings = {}, products = [] } = useDb();
+  const { user } = useAuth();
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   const companyName = settings.companyName || 'GlobalDrop ERP';
@@ -45,8 +48,24 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
   const netBeforeTax = calculatedTotal - taxAmount;
 
   const handlePrint = () => {
+    if (user?.role !== 'admin') return;
     window.print();
   };
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="modal-overlay z-50 p-4" onClick={onClose}>
+        <div className="modal-content max-w-md w-full p-6 text-center bg-white rounded-2xl shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+            <X size={24} />
+          </div>
+          <h3 className="text-lg font-bold text-slate-800 mb-1">Access Restricted</h3>
+          <p className="text-sm text-slate-600 mb-4">Invoices can only be viewed and downloaded by Admin users.</p>
+          <button onClick={onClose} className="btn-primary w-full justify-center">Close</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal-overlay z-50 overflow-y-auto py-6" onClick={onClose}>
@@ -142,8 +161,8 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
                     <td className="py-3 px-4 text-slate-400 font-mono text-xs">{index + 1}</td>
                     <td className="py-3 px-4 font-semibold text-slate-800">{item.name}</td>
                     <td className="py-3 px-4 text-center font-bold text-slate-700">{item.quantity}</td>
-                    <td className="py-3 px-4 text-right text-slate-600">₹{item.price.toFixed(2)}</td>
-                    <td className="py-3 px-4 text-right font-bold text-slate-900">₹{item.total.toFixed(2)}</td>
+                    <td className="py-3 px-4 text-right text-slate-600">{formatCurrency(item.price, user?.role)}</td>
+                    <td className="py-3 px-4 text-right font-bold text-slate-900">{formatCurrency(item.total, user?.role)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -162,15 +181,15 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
             <div className="w-full sm:w-72 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 print:bg-white print:border-none">
               <div className="flex justify-between text-xs text-slate-600">
                 <span>Subtotal (Net)</span>
-                <span>₹{netBeforeTax.toFixed(2)}</span>
+                <span>{formatCurrency(netBeforeTax, user?.role)}</span>
               </div>
               <div className="flex justify-between text-xs text-slate-600">
                 <span>GST / Tax ({taxRate}%)</span>
-                <span>₹{taxAmount.toFixed(2)}</span>
+                <span>{formatCurrency(taxAmount, user?.role)}</span>
               </div>
               <div className="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-300">
                 <span>Total Amount</span>
-                <span>₹{calculatedTotal.toFixed(2)}</span>
+                <span>{formatCurrency(calculatedTotal, user?.role)}</span>
               </div>
             </div>
           </div>

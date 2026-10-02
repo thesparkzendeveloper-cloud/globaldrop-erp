@@ -6,7 +6,8 @@ const countrySchema = new mongoose.Schema({
   code: { type: String, required: true },
   currency: { type: String, required: true },
   timezone: { type: String, required: true },
-  status: { type: String, enum: ['active', 'inactive'], default: 'active' }
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  notes: { type: String, default: '' }
 }, { timestamps: true });
 
 // Branch Schema
@@ -17,7 +18,8 @@ const branchSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   email: { type: String, required: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
-  manager: { type: String, required: true }
+  manager: { type: String, required: true },
+  notes: { type: String, default: '' }
 }, { timestamps: true });
 
 // Employee Schema
@@ -31,7 +33,8 @@ const employeeSchema = new mongoose.Schema({
   branch: { type: String, required: true },
   joinDate: { type: String, required: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
-  password: { type: String, required: true } // will store hashed password
+  password: { type: String, required: true }, // will store hashed password
+  notes: { type: String, default: '' }
 }, { timestamps: true });
 
 // Attendance Schema
@@ -53,8 +56,10 @@ const taskSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'in-progress', 'on-hold', 'completed'], default: 'pending' },
   assignedTo: { type: String, required: true },
   assignedToName: { type: String, required: true },
+  createdDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
   dueDate: { type: String, required: true },
-  progress: { type: Number, default: 0 }
+  progress: { type: Number, default: 0 },
+  notes: { type: String, default: '' }
 }, { timestamps: true });
 
 // Product Schema (Inventory)
@@ -67,7 +72,8 @@ const productSchema = new mongoose.Schema({
   availableQuantity: { type: Number, required: true },
   reservedQuantity: { type: Number, default: 0 },
   branch: { type: String, required: true },
-  status: { type: String, enum: ['available', 'low-stock', 'out-of-stock'], default: 'available' }
+  status: { type: String, enum: ['available', 'low-stock', 'out-of-stock'], default: 'available' },
+  notes: { type: String, default: '' }
 }, { timestamps: true });
 
 // Vendor Schema
@@ -78,7 +84,8 @@ const vendorSchema = new mongoose.Schema({
   country: { type: String, required: true },
   products: [{ type: String }],
   rating: { type: Number, default: 5 },
-  status: { type: String, enum: ['active', 'inactive'], default: 'active' }
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  notes: { type: String, default: '' }
 }, { timestamps: true });
 
 // Transaction Schema (Finance)
@@ -90,7 +97,8 @@ const transactionSchema = new mongoose.Schema({
   category: { type: String, required: true },
   createdBy: { type: String, required: true },
   date: { type: String, required: true },
-  branch: { type: String, required: true }
+  branch: { type: String, required: true },
+  notes: { type: String, default: '' }
 }, { timestamps: true });
 
 // FundRequest Schema (Approvals)
@@ -99,9 +107,11 @@ const fundRequestSchema = new mongoose.Schema({
   reason: { type: String, required: true },
   requestedBy: { type: String, required: true },
   requestDate: { type: String, required: true },
+  branch: { type: String, default: '' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   approvedBy: { type: String, default: '' },
-  remarks: { type: String, default: '' }
+  remarks: { type: String, default: '' },
+  notes: { type: String, default: '' }
 }, { timestamps: true });
 
 // InventoryRequest Schema (Approvals)
@@ -112,8 +122,10 @@ const inventoryRequestSchema = new mongoose.Schema({
   requestedBy: { type: String, required: true },
   requestDate: { type: String, required: true },
   status: { type: String, enum: ['pending', 'approved', 'transferred', 'rejected'], default: 'pending' },
-  fromBranch: { type: String, required: true },
-  toBranch: { type: String, required: true }
+  fromBranch: { type: String, default: '' },
+  toBranch: { type: String, default: '' },
+  remarks: { type: String, default: '' },
+  notes: { type: String, default: '' }
 }, { timestamps: true });
 
 // Order Schema
@@ -132,7 +144,11 @@ const orderSchema = new mongoose.Schema({
   status: { type: String, enum: ['created', 'packed', 'dispatched', 'delivered'], default: 'created' },
   createdAt: { type: String, required: true },
   updatedAt: { type: String, required: true },
-  deadline: { type: String, default: '' }
+  deadline: { type: String, default: '' },
+  notes: { type: String, default: '' },
+  assignedToRole: { type: String, default: 'all' },
+  assignedToUser: { type: String, default: '' },
+  assignedToUserName: { type: String, default: '' }
 }, { timestamps: true });
 
 // Notification Schema
@@ -142,7 +158,8 @@ const notificationSchema = new mongoose.Schema({
   message: { type: String, required: true },
   timestamp: { type: String, required: true },
   read: { type: Boolean, default: false },
-  priority: { type: String, enum: ['low', 'medium', 'high', 'critical'], default: 'medium' }
+  priority: { type: String, enum: ['low', 'medium', 'high', 'critical'], default: 'medium' },
+  targetUserId: { type: String, default: '' }
 }, { timestamps: true });
 
 // Setting Schema

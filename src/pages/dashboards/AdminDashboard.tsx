@@ -14,6 +14,7 @@ import {
   Target,
   CheckCircle,
   UserCheck,
+  ClipboardList,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -31,11 +32,14 @@ import {
   Legend,
 } from 'recharts';
 import { useDb } from '@/context/DbContext';
+import { useAuth } from '@/context/AuthContext';
+import { formatCurrency, getCurrencySymbol } from '@/utils/currency';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     countries = [],
     branches = [],
@@ -47,6 +51,7 @@ export default function AdminDashboard() {
     inventoryRequests = [],
     leads = [],
     customers = [],
+    tasks = [],
   } = useDb();
 
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + (t.amount || 0), 0);
@@ -193,8 +198,8 @@ export default function AdminDashboard() {
         <StatCard title="Total Orders" value={stats.totalOrders.toLocaleString()} icon={ShoppingCart} iconColor="bg-gradient-to-br from-amber-500 to-amber-600" path="/orders" />
         <StatCard title="Total Inventory" value={stats.totalInventory.toLocaleString()} icon={Package} iconColor="bg-gradient-to-br from-rose-500 to-rose-600" path="/inventory" />
         <StatCard title="Pending" value={stats.pendingRequests} icon={Clock} iconColor="bg-gradient-to-br from-orange-500 to-orange-600" path="/approvals" />
-        <StatCard title="Revenue" value={`₹${(stats.financeSummary.income / 1000).toFixed(1)}k`} icon={DollarSign} iconColor="bg-gradient-to-br from-teal-500 to-teal-600" trend={stats.revenueSummary.growth} path="/finance" />
-        <StatCard title="Balance" value={`₹${(stats.financeSummary.balance / 1000).toFixed(1)}k`} icon={ArrowUpRight} iconColor="bg-gradient-to-br from-cyan-500 to-cyan-600" path="/finance" />
+        <StatCard title="Revenue" value={`${getCurrencySymbol(user?.role)}${(stats.financeSummary.income / 1000).toFixed(1)}k`} icon={DollarSign} iconColor="bg-gradient-to-br from-teal-500 to-teal-600" trend={stats.revenueSummary.growth} path="/finance" />
+        <StatCard title="Balance" value={`${getCurrencySymbol(user?.role)}${(stats.financeSummary.balance / 1000).toFixed(1)}k`} icon={ArrowUpRight} iconColor="bg-gradient-to-br from-cyan-500 to-cyan-600" path="/finance" />
       </div>
 
       {/* Lead Pipeline Overview */}
@@ -224,6 +229,56 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Recent Task Assignments Overview */}
+      <div className="card p-3 sm:p-4 lg:p-5 mt-3 sm:mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm sm:text-base font-semibold text-slate-800 flex items-center gap-2">
+            <ClipboardList size={16} className="text-violet-600" />
+            Recent Task Assignments
+          </h3>
+          <a href="/tasks" className="text-xs text-blue-600 hover:underline font-medium">View all →</a>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {tasks.slice(0, 3).map(task => (
+            <div
+              key={task.id}
+              onClick={() => navigate('/tasks')}
+              className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200/60 hover:border-blue-300 transition-all cursor-pointer flex flex-col justify-between group"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <h4 className="text-xs sm:text-sm font-semibold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">{task.title}</h4>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className={`badge text-[10px] ${task.priority === 'high' || task.priority === 'critical' ? 'badge-red' : task.priority === 'medium' ? 'badge-yellow' : 'badge-slate'}`}>
+                      {task.priority}
+                    </span>
+                    <span className={`badge text-[10px] ${task.status === 'completed' ? 'badge-green' : task.status === 'in_progress' ? 'badge-blue' : 'badge-yellow'}`}>
+                      {task.status?.replace('_', ' ') || 'pending'}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 line-clamp-2 mb-3">{task.description}</p>
+              </div>
+              <div className="space-y-1 pt-2 border-t border-slate-200/60 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                    👤 {task.assignedToName}
+                  </span>
+                  <span className="text-[11px] text-slate-400">Created: {task.createdDate || 'Today'}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                  <span>Due: {task.dueDate}</span>
+                  <span className="font-medium text-slate-700">Progress: {task.progress}%</span>
+                </div>
+              </div>
+            </div>
+          ))}
+          {tasks.length === 0 && (
+            <p className="text-xs text-slate-500 py-2">No task assignments found.</p>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mt-3 sm:mt-4 lg:mt-6">
         <div className="lg:col-span-2 card p-3 sm:p-4 lg:p-6">
           <h3 className="text-sm sm:text-base font-semibold text-slate-800 mb-3 sm:mb-4">Monthly Revenue & Expenses</h3>
@@ -232,8 +287,8 @@ export default function AdminDashboard() {
               <AreaChart data={dynamicRevenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} />
-                <YAxis stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} tickFormatter={v => `₹${v / 1000}k`} width={45} />
-                <Tooltip formatter={(v: any) => `₹${v.toLocaleString()}`} />
+                <YAxis stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} tickFormatter={v => `${getCurrencySymbol(user?.role)}${v / 1000}k`} width={45} />
+                <Tooltip formatter={(v: any) => formatCurrency(v, user?.role)} />
                 <Legend wrapperStyle={{ fontSize: '12px' }} />
                 <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fill="#93c5fd" fillOpacity={0.4} name="Revenue" />
                 <Area type="monotone" dataKey="expenses" stroke="#10b981" fill="#6ee7b7" fillOpacity={0.4} name="Expenses" />
@@ -248,9 +303,9 @@ export default function AdminDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dynamicBranchPerformance} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis type="number" stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} tickFormatter={v => `₹${v / 1000}k`} />
+                <XAxis type="number" stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} tickFormatter={v => `${getCurrencySymbol(user?.role)}${v / 1000}k`} />
                 <YAxis type="category" dataKey="branch" stroke="#94a3b8" fontSize={10} tick={{ fontSize: 10 }} width={55} />
-                <Tooltip formatter={(v: any) => `₹${v.toLocaleString()}`} />
+                <Tooltip formatter={(v: any) => formatCurrency(v, user?.role)} />
                 <Bar dataKey="revenue" fill="#3b82f6" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -305,19 +360,19 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
           <div className="p-3 sm:p-4 bg-blue-50 rounded-lg sm:rounded-xl">
             <p className="text-xs sm:text-sm text-blue-600">Budget</p>
-            <p className="text-base sm:text-lg lg:text-xl font-semibold text-blue-700 mt-0.5 sm:mt-1">₹{(stats.financeSummary.budget / 1000).toFixed(1)}k</p>
+            <p className="text-base sm:text-lg lg:text-xl font-semibold text-blue-700 mt-0.5 sm:mt-1">{getCurrencySymbol(user?.role)}{(stats.financeSummary.budget / 1000).toFixed(1)}k</p>
           </div>
           <div className="card p-3 sm:p-4 bg-emerald-50 border-emerald-100 rounded-lg sm:rounded-xl">
             <p className="text-xs font-medium text-emerald-600">Total Income</p>
-            <p className="text-base sm:text-lg lg:text-xl font-semibold text-emerald-700 mt-0.5 sm:mt-1">₹{(stats.financeSummary.income / 1000).toFixed(1)}k</p>
+            <p className="text-base sm:text-lg lg:text-xl font-semibold text-emerald-700 mt-0.5 sm:mt-1">{getCurrencySymbol(user?.role)}{(stats.financeSummary.income / 1000).toFixed(1)}k</p>
           </div>
           <div className="card p-3 sm:p-4 bg-amber-50 border-amber-100 rounded-lg sm:rounded-xl">
             <p className="text-xs font-medium text-amber-600">Total Expenses</p>
-            <p className="text-base sm:text-lg lg:text-xl font-semibold text-amber-700 mt-0.5 sm:mt-1">₹{(stats.financeSummary.expenses / 1000).toFixed(1)}k</p>
+            <p className="text-base sm:text-lg lg:text-xl font-semibold text-amber-700 mt-0.5 sm:mt-1">{getCurrencySymbol(user?.role)}{(stats.financeSummary.expenses / 1000).toFixed(1)}k</p>
           </div>
           <div className="card p-3 sm:p-4 bg-violet-50 border-violet-100 rounded-lg sm:rounded-xl">
             <p className="text-xs font-medium text-violet-600">Net Balance</p>
-            <p className="text-base sm:text-lg lg:text-xl font-semibold text-violet-700 mt-0.5 sm:mt-1">₹{(stats.financeSummary.balance / 1000).toFixed(1)}k</p>
+            <p className="text-base sm:text-lg lg:text-xl font-semibold text-violet-700 mt-0.5 sm:mt-1">{getCurrencySymbol(user?.role)}{(stats.financeSummary.balance / 1000).toFixed(1)}k</p>
           </div>
         </div>
       </div>

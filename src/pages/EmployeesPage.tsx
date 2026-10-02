@@ -36,6 +36,7 @@ export default function EmployeesPage() {
       branch: formData.get('branch') as string,
       joinDate: formData.get('joinDate') as string,
       status: formData.get('status') as 'active' | 'inactive',
+      notes: (formData.get('notes') as string || '').trim(),
     };
 
     try {
@@ -244,17 +245,23 @@ export default function EmployeesPage() {
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="form-label">Country</label>
-                  <select name="country" className="form-input" defaultValue={editingEmployee?.country || countries[0]?.name}>
-                    {countries.filter(c => c.status === 'active').map(c => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
+                  <select name="country" className="form-input" defaultValue={editingEmployee?.country || (countries.find(c => c.status === 'active')?.name || 'India')}>
+                    {Array.from(new Set([
+                      ...countries.filter(c => c.status === 'active').map(c => c.name),
+                      'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'Japan', 'Singapore', 'United Arab Emirates'
+                    ])).map(cName => (
+                      <option key={cName} value={cName}>{cName}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="form-label">Branch</label>
-                  <select name="branch" className="form-input" defaultValue={editingEmployee?.branch || branches[0]?.name}>
-                    {branches.filter(b => b.status === 'active').map(b => (
-                      <option key={b.id} value={b.name}>{b.name}</option>
+                  <select name="branch" className="form-input" defaultValue={editingEmployee?.branch || (branches.find(b => b.status === 'active')?.name || 'India Branch')}>
+                    {Array.from(new Set([
+                      ...branches.filter(b => b.status === 'active').map(b => b.name),
+                      'India Branch', 'Main HQ', 'New York HQ', 'London Office'
+                    ])).map(bName => (
+                      <option key={bName} value={bName}>{bName}</option>
                     ))}
                   </select>
                 </div>
@@ -262,6 +269,10 @@ export default function EmployeesPage() {
               <div>
                 <label className="form-label">Join Date</label>
                 <input type="date" name="joinDate" defaultValue={editingEmployee?.joinDate || new Date().toISOString().split('T')[0]} className="form-input" required />
+              </div>
+              <div>
+                <label className="form-label">Notes / Additional Info</label>
+                <textarea name="notes" className="form-input text-xs sm:text-sm" rows={2} defaultValue={editingEmployee?.notes ?? ''} placeholder="Employee notes or remarks..." />
               </div>
             </div>
 

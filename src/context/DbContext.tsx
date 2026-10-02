@@ -75,9 +75,12 @@ interface DbContextType {
   updateInventoryRequest: (id: string, item: Partial<InventoryRequest>) => Promise<void>;
 
   addOrder: (item: Omit<Order, 'id'>) => Promise<void>;
+  updateOrder: (id: string, item: Partial<Order>) => Promise<void>;
   updateOrderStatus: (id: string, status: Order['status']) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
 
   markNotificationRead: (id: string) => Promise<void>;
+  addNotification: (item: Omit<Notification, 'id'>) => Promise<void>;
   updateSettings: (settings: any) => Promise<void>;
 
   addLead: (item: Omit<Lead, 'id'>) => Promise<void>;
@@ -117,7 +120,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
     if (!item) return item;
     return {
       ...item,
-      id: item._id || item.id
+      id: item.id || item._id
     };
   };
 
@@ -187,20 +190,20 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         return dummyDefault;
       };
 
-      setCountries(prev => resolveState(countriesData, prev, dummyData.countries));
-      setBranches(prev => resolveState(branchesData, prev, dummyData.branches));
-      setEmployees(prev => resolveState(employeesData, prev, dummyData.employees));
-      setAttendanceRecords(prev => resolveState(attendanceData, prev, dummyData.attendanceRecords));
-      setTasks(prev => resolveState(tasksData, prev, dummyData.tasks));
-      setProducts(prev => resolveState(productsData, prev, dummyData.products));
-      setVendors(prev => resolveState(vendorsData, prev, dummyData.vendors));
-      setTransactions(prev => resolveState(transactionsData, prev, dummyData.transactions));
-      setFundRequests(prev => resolveState(fundRequestsData, prev, dummyData.fundRequests));
-      setInventoryRequests(prev => resolveState(inventoryRequestsData, prev, dummyData.inventoryRequests));
-      setOrders(prev => resolveState(ordersData, prev, dummyData.orders));
-      setNotifications(prev => resolveState(notificationsData, prev, dummyData.notifications));
-      setLeads(prev => resolveState(leadsData, prev, dummyData.leads || []));
-      setCustomers(prev => resolveState(customersData, prev, dummyData.customers || []));
+      setCountries(prev => resolveState(countriesData, prev, []));
+      setBranches(prev => resolveState(branchesData, prev, []));
+      setEmployees(prev => resolveState(employeesData, prev, []));
+      setAttendanceRecords(prev => resolveState(attendanceData, prev, []));
+      setTasks(prev => resolveState(tasksData, prev, []));
+      setProducts(prev => resolveState(productsData, prev, []));
+      setVendors(prev => resolveState(vendorsData, prev, []));
+      setTransactions(prev => resolveState(transactionsData, prev, []));
+      setFundRequests(prev => resolveState(fundRequestsData, prev, []));
+      setInventoryRequests(prev => resolveState(inventoryRequestsData, prev, []));
+      setOrders(prev => resolveState(ordersData, prev, []));
+      setNotifications(prev => resolveState(notificationsData, prev, []));
+      setLeads(prev => resolveState(leadsData, prev, []));
+      setCustomers(prev => resolveState(customersData, prev, []));
       setSettings(settingsData || {
         companyName: 'GlobalDrop ERP',
         email: 'admin@globaldrop.com',
@@ -235,12 +238,14 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         ...(body ? { body: JSON.stringify(body) } : {})
       });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errText = await response.text().catch(() => '');
+        throw new Error(`HTTP error ${response.status}: ${errText}`);
       }
       return await response.json();
     } catch (error) {
-      console.warn(`Request failed for ${path}, using local state mock:`, error);
-      return { id: 'LOCAL_' + Date.now(), ...body };
+      console.warn(`Request failed for ${path}, using local state fallback:`, error);
+      const fallbackId = (body?.id && String(body.id).startsWith('LOCAL_')) ? body.id : ('LOCAL_' + Date.now());
+      return { ...body, id: fallbackId };
     }
   };
 
@@ -312,6 +317,26 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   const addTask = async (item: Omit<Task, 'id'>) => {
     const newItem = await makeRequest('tasks', 'POST', item);
     setTasks(prev => [mapMongoId(newItem), ...prev]);
+
+    // Automatically notify the assigned user
+    if (item.assignedTo) {
+      try {
+        const notifData = {
+          type: 'task',
+          title: 'New Task Assigned',
+          message: `You have been assigned a new task: "${item.title}"`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          read: false,
+          priority: item.priority || 'medium',
+          targetUserId: item.assignedTo
+        };
+        const newNotif = await makeRequest('notifications', 'POST', notifData);
+        setNotifications(prev => [mapMongoId(newNotif), ...prev]);
+      } catch (e) {
+        console.error('Failed to create task notification', e);
+      }
+    }
+
     refreshData();
   };
   const updateTask = async (id: string, item: Partial<Task>) => {
@@ -361,8 +386,8 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
 
   // Transactions
   const addTransaction = async (item: Omit<Transaction, 'id'>) => {
-    const randomId = 'TXN' + Math.floor(100 + Math.random() * 900);
-    const newItem = await makeRequest('transactions', 'POST', { ...item, id: randomId });
+    const txnUniqueId = 'TXN' + Date.now() + Math.floor(Math.random() * 1000);
+    const newItem = await makeRequest('transactions', 'POST', { ...item, id: txnUniqueId });
     setTransactions(prev => [mapMongoId(newItem), ...prev]);
     refreshData();
   };
@@ -375,32 +400,119 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   // Fund Requests
   const addFundRequest = async (item: Omit<FundRequest, 'id'>) => {
     const newItem = await makeRequest('fund-requests', 'POST', item);
-    setFundRequests(prev => [mapMongoId(newItem), ...prev]);
+    const mapped = mapMongoId(newItem);
+    setFundRequests(prev => [mapped, ...prev]);
+
+    // Create system notification
+    try {
+      const notifData = {
+        type: 'fund' as const,
+        title: 'New Fund Request Submitted',
+        message: `Fund request of ${item.amount ? '₹' + item.amount : 'amount'} submitted by ${item.requestedBy || 'User'} for "${item.reason || 'Expense'}"`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+        priority: 'high' as const,
+        targetUserId: ''
+      };
+      const newNotif = await makeRequest('notifications', 'POST', notifData);
+      setNotifications(prev => [mapMongoId(newNotif), ...prev]);
+    } catch (e) {
+      console.error(e);
+    }
+
     refreshData();
   };
+
   const updateFundRequest = async (id: string, item: Partial<FundRequest>) => {
     const updated = await makeRequest(`fund-requests/${id}`, 'PUT', item);
-    setFundRequests(prev => prev.map(fr => fr.id === id ? mapMongoId(updated) : fr));
+    const mapped = mapMongoId(updated);
+    setFundRequests(prev => prev.map(fr => fr.id === id ? mapped : fr));
+
+    if (item.status) {
+      try {
+        const notifData = {
+          type: 'fund' as const,
+          title: `Fund Request ${item.status.toUpperCase()}`,
+          message: `Fund request for "${mapped.reason || 'Expense'}" requested by ${mapped.requestedBy || 'User'} has been ${item.status}.${item.remarks ? ' Remarks: ' + item.remarks : ''}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          read: false,
+          priority: item.status === 'approved' ? ('high' as const) : ('medium' as const),
+          targetUserId: ''
+        };
+        const newNotif = await makeRequest('notifications', 'POST', notifData);
+        setNotifications(prev => [mapMongoId(newNotif), ...prev]);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     refreshData();
   };
 
   // Inventory Requests
   const addInventoryRequest = async (item: Omit<InventoryRequest, 'id'>) => {
     const newItem = await makeRequest('inventory-requests', 'POST', item);
-    setInventoryRequests(prev => [mapMongoId(newItem), ...prev]);
+    const mapped = mapMongoId(newItem);
+    setInventoryRequests(prev => [mapped, ...prev]);
+
+    try {
+      const notifData = {
+        type: 'inventory' as const,
+        title: 'New Inventory Request Submitted',
+        message: `${item.requestedBy || 'User'} requested ${item.quantity} units of "${item.product}" for "${item.reason || 'Stock'}"`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+        priority: 'medium' as const,
+        targetUserId: ''
+      };
+      const newNotif = await makeRequest('notifications', 'POST', notifData);
+      setNotifications(prev => [mapMongoId(newNotif), ...prev]);
+    } catch (e) {
+      console.error(e);
+    }
+
     refreshData();
   };
+
   const updateInventoryRequest = async (id: string, item: Partial<InventoryRequest>) => {
     const updated = await makeRequest(`inventory-requests/${id}`, 'PUT', item);
-    setInventoryRequests(prev => prev.map(ir => ir.id === id ? mapMongoId(updated) : ir));
+    const mapped = mapMongoId(updated);
+    setInventoryRequests(prev => prev.map(ir => ir.id === id ? mapped : ir));
+
+    if (item.status) {
+      try {
+        const notifData = {
+          type: 'inventory' as const,
+          title: `Inventory Request ${item.status.toUpperCase()}`,
+          message: `Inventory request for ${mapped.quantity} units of "${mapped.product}" has been ${item.status}.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          read: false,
+          priority: 'medium' as const,
+          targetUserId: ''
+        };
+        const newNotif = await makeRequest('notifications', 'POST', notifData);
+        setNotifications(prev => [mapMongoId(newNotif), ...prev]);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     refreshData();
   };
 
   // Orders
   const addOrder = async (item: Omit<Order, 'id'>) => {
-    const randomId = 'ORD' + Math.floor(100 + Math.random() * 900);
-    const newItem = await makeRequest('orders', 'POST', { ...item, id: randomId });
-    setOrders(prev => [mapMongoId(newItem), ...prev]);
+    let maxNum = 0;
+    orders.forEach(o => {
+      if (o.id && o.id.startsWith('Order No ')) {
+        const num = parseInt(o.id.replace('Order No ', ''), 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      }
+    });
+    const formattedId = `Order No ${maxNum + 1}`;
+    const newItem = await makeRequest('orders', 'POST', { ...item, id: formattedId });
+    const mappedNewItem = mapMongoId(newItem);
+    setOrders(prev => [mappedNewItem, ...prev]);
 
     // Automatically decrease product inventory quantity
     if (item.products && item.products.length > 0) {
@@ -419,10 +531,10 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
 
     // Auto-create income transaction in Finance for this order
     if (item.totalAmount && item.totalAmount > 0) {
-      const txnId = 'TXN' + Math.floor(100 + Math.random() * 900);
+      const txnId = 'TXN' + Date.now() + Math.floor(Math.random() * 1000);
       const txnData = {
         id: txnId,
-        description: `Order ${randomId} — ${item.customer || 'Customer'}`,
+        description: `Order ${mappedNewItem.id || formattedId} — ${item.customer || 'Customer'}`,
         amount: item.totalAmount,
         type: 'income' as const,
         category: 'Sales',
@@ -438,7 +550,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
     if (item.customer) {
       const existingCustomer = customers.find(c => c.name.toLowerCase() === item.customer.toLowerCase() || (item.customerPhone && c.phone === item.customerPhone));
       if (!existingCustomer) {
-        const custId = 'CUST' + Math.floor(100 + Math.random() * 900);
+        const custId = 'CUST' + Date.now() + Math.floor(Math.random() * 1000);
         const newCustData = {
           id: custId,
           name: item.customer,
@@ -463,11 +575,58 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Auto-notify order creation
+    try {
+      const notifData = {
+        type: 'order' as const,
+        title: 'New Order Created',
+        message: `Order ${mappedNewItem.id || formattedId} for ${item.customer || 'Customer'} has been created. Total: ₹${item.totalAmount}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+        priority: 'medium' as const,
+        targetUserId: ''
+      };
+      const newNotif = await makeRequest('notifications', 'POST', notifData);
+      setNotifications(prev => [mapMongoId(newNotif), ...prev]);
+    } catch (e) {
+      console.error(e);
+    }
+
     refreshData();
   };
-  const updateOrderStatus = async (id: string, status: Order['status']) => {
-    const updated = await makeRequest(`orders/${id}`, 'PUT', { status, updatedAt: new Date().toISOString().split('T')[0] });
+
+  const updateOrder = async (id: string, item: Partial<Order>) => {
+    const updated = await makeRequest(`orders/${id}`, 'PUT', {
+      ...item,
+      updatedAt: new Date().toISOString().split('T')[0]
+    });
     setOrders(prev => prev.map(o => o.id === id ? mapMongoId(updated) : o));
+    refreshData();
+  };
+
+  const updateOrderStatus = async (id: string, status: Order['status']) => {
+    await updateOrder(id, { status });
+
+    try {
+      const notifData = {
+        type: 'order' as const,
+        title: 'Order Status Updated',
+        message: `Order #${id} status has been updated to "${status.toUpperCase()}"`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+        priority: 'medium' as const,
+        targetUserId: ''
+      };
+      const newNotif = await makeRequest('notifications', 'POST', notifData);
+      setNotifications(prev => [mapMongoId(newNotif), ...prev]);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteOrder = async (id: string) => {
+    await makeRequest(`orders/${id}`, 'DELETE');
+    setOrders(prev => prev.filter(o => o.id !== id));
     refreshData();
   };
 
@@ -475,6 +634,12 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   const markNotificationRead = async (id: string) => {
     const updated = await makeRequest(`notifications/${id}`, 'PUT', { read: true });
     setNotifications(prev => prev.map(n => n.id === id ? mapMongoId(updated) : n));
+    refreshData();
+  };
+
+  const addNotification = async (item: Omit<Notification, 'id'>) => {
+    const newItem = await makeRequest('notifications', 'POST', item);
+    setNotifications(prev => [mapMongoId(newItem), ...prev]);
     refreshData();
   };
 
@@ -567,8 +732,11 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         addInventoryRequest,
         updateInventoryRequest,
         addOrder,
+        updateOrder,
         updateOrderStatus,
+        deleteOrder,
         markNotificationRead,
+        addNotification,
         updateSettings,
         addLead,
         updateLead,

@@ -4,6 +4,11 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import dns from 'dns';
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
 import {
   Country,
   Branch,
@@ -24,10 +29,11 @@ import {
 } from './models.js';
 
 dotenv.config();
+dotenv.config({ path: '../.env' });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/globaldrop-erp';
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET || 'globaldrop_erp_secret_key_2026';
 
 app.use(cors());
@@ -192,13 +198,16 @@ const createCrudRoutes = (path, Model, readRoles = ['admin', 'supervisor', 'empl
 
   app.put(`/api/${path}/:id`, authenticateToken, requireRole(writeRoles), async (req, res) => {
     try {
+      const isValidObjectId = mongoose.Types.ObjectId.isValid(req.params.id) && req.params.id.length === 24;
+      const query = isValidObjectId ? { $or: [{ id: req.params.id }, { _id: req.params.id }] } : { id: req.params.id };
+
       if (path === 'employees' && req.user.role === 'supervisor') {
-        const target = await Model.findById(req.params.id);
+        const target = await Model.findOne(query);
         if (target && target.branch !== req.user.branch) {
           return res.status(403).json({ message: 'Forbidden: Can only manage employees in your branch' });
         }
       }
-      const updatedItem = await Model.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      const updatedItem = await Model.findOneAndUpdate(query, req.body, { new: true });
       if (!updatedItem) return res.status(404).json({ message: 'Item not found' });
       await logAudit(req, 'Update', `Updated item in ${Model.modelName} (ID: ${req.params.id}): ${JSON.stringify(req.body)}`);
       res.json(updatedItem);
@@ -209,10 +218,13 @@ const createCrudRoutes = (path, Model, readRoles = ['admin', 'supervisor', 'empl
 
   app.delete(`/api/${path}/:id`, authenticateToken, requireRole(writeRoles), async (req, res) => {
     try {
+      const isValidObjectId = mongoose.Types.ObjectId.isValid(req.params.id) && req.params.id.length === 24;
+      const query = isValidObjectId ? { $or: [{ id: req.params.id }, { _id: req.params.id }] } : { id: req.params.id };
+
       if (path === 'employees' && req.user.role === 'supervisor') {
         return res.status(403).json({ message: 'Forbidden: Supervisor cannot delete employees' });
       }
-      const deletedItem = await Model.findByIdAndDelete(req.params.id);
+      const deletedItem = await Model.findOneAndDelete(query);
       if (!deletedItem) return res.status(404).json({ message: 'Item not found' });
       await logAudit(req, 'Delete', `Deleted item in ${Model.modelName} (ID: ${req.params.id})`);
       res.json({ message: 'Deleted successfully', item: deletedItem });
@@ -225,6 +237,22 @@ const createCrudRoutes = (path, Model, readRoles = ['admin', 'supervisor', 'empl
 // Custom POST route for orders to auto-decrement inventory stock in MongoDB
 app.post('/api/orders', authenticateToken, requireRole(['admin', 'supervisor']), async (req, res) => {
   try {
+    let existingOrder = null;
+    if (req.body.id) {
+      existingOrder = await Order.findOne({ id: req.body.id });
+    }
+
+    if (!req.body.id || existingOrder || req.body.id.startsWith('ORD') || req.body.id.length > 20) {
+      const allOrders = await Order.find({}, { id: 1 });
+      let maxNum = 0;
+      allOrders.forEach(o => {
+        if (o.id && o.id.startsWith('Order No ')) {
+          const num = parseInt(o.id.replace('Order No ', ''), 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      });
+      req.body.id = `Order No ${maxNum + 1}`;
+    }
     const newOrder = new Order(req.body);
     const savedOrder = await newOrder.save();
 
@@ -246,6 +274,7 @@ app.post('/api/orders', authenticateToken, requireRole(['admin', 'supervisor']),
     res.status(400).json({ message: error.message });
   }
 });
+
 
 // Register CRUD routes with appropriate permissions
 createCrudRoutes('countries', Country, ['admin'], ['admin']);
@@ -532,14 +561,45 @@ app.delete('/api/customers/:id', async (req, res) => {
   }
 });
 
-// Start server and connect to MongoDB
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log('Successfully connected to MongoDB.');
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+// Start server and connect strictly to MongoDB Atlas
+const startServer = async () => {
+  if (!MONGO_URI || MONGO_URI.includes('<username>') || MONGO_URI.includes('<password>')) {
+    console.error('❌ ERROR: MONGO_URI environment variable is missing or using placeholder credentials.');
+    console.error('   Please configure your actual MongoDB Atlas connection string in server/.env file.');
+    console.error('   Example: MONGO_URI=mongodb+srv://user:pass@sparkzen.xxxx.mongodb.net/globalERP?retryWrites=true&w=majority');
+    process.exit(1);
+  }
+
+  try {
+    console.log('Connecting to MongoDB Atlas...');
+    await mongoose.connect(MONGO_URI, {
+      dbName: 'globalERP',
+      serverSelectionTimeoutMS: 10000
     });
-  })
-  .catch((err) => {
-    console.error('Database connection failed:', err);
-  });
+    console.log('✅ MongoDB Atlas connected successfully: globalERP');
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('❌ MongoDB Atlas connection failed!');
+    console.error('   Reason:', error.message);
+
+    if (error.name === 'MongooseServerSelectionError') {
+      console.error('\n📌 TROUBLESHOOTING MONGODB ATLAS NETWORK ACCESS:');
+      console.error('   1. Log in to your MongoDB Atlas dashboard (https://cloud.mongodb.com)');
+      console.error('   2. Select Security -> Network Access');
+      console.error('   3. Click "Add IP Address"');
+      console.error('   4. Add "0.0.0.0/0" (Allow Access from Anywhere) or your current IP address.');
+      console.error('   5. Save changes and restart the backend server.\n');
+    } else if (error.message.includes('Authentication failed') || error.name === 'MongoServerError') {
+      console.error('\n📌 TROUBLESHOOTING MONGODB ATLAS AUTHENTICATION:');
+      console.error('   1. Verify your database username and password in MONGO_URI in server/.env');
+      console.error('   2. If password contains special characters (e.g. @, #, %), URL-encode them (e.g. @ -> %40).\n');
+    }
+
+    process.exit(1);
+  }
+};
+
+startServer();

@@ -28,7 +28,12 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const unread = notifications.filter(n => !n.read).length;
+  const userNotifications = notifications.filter(n => {
+    if (!n.targetUserId || user?.role === 'admin') return true;
+    return n.targetUserId === user?.id || n.targetUserId === user?.email;
+  });
+
+  const unread = userNotifications.filter(n => !n.read).length;
 
   return (
     <header className="fixed top-0 left-0 lg:left-64 right-0 h-14 sm:h-16 bg-white border-b border-slate-200 z-30 flex items-center justify-between px-3 sm:px-4 lg:px-6 gap-2 sm:gap-4 transition-all">
@@ -91,7 +96,7 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
                   </button>
                 </div>
                 <div className="max-h-64 sm:max-h-72 overflow-y-auto">
-                  {notifications.slice(0, 4).map(n => (
+                  {userNotifications.slice(0, 4).map(n => (
                     <div
                       key={n.id}
                       onClick={() => { navigate('/notifications'); setShowNotifications(false); }}

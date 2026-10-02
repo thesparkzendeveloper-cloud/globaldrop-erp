@@ -17,6 +17,7 @@ export interface Country {
   currency: string;
   timezone: string;
   status: 'active' | 'inactive';
+  notes?: string;
 }
 
 export interface Branch {
@@ -28,6 +29,7 @@ export interface Branch {
   email: string;
   status: 'active' | 'inactive';
   manager?: string;
+  notes?: string;
 }
 
 export interface Employee {
@@ -41,6 +43,7 @@ export interface Employee {
   joinDate: string;
   status: 'active' | 'inactive';
   avatar?: string;
+  notes?: string;
 }
 
 export interface Attendance {
@@ -65,6 +68,7 @@ export interface Task {
   dueDate: string;
   progress: number;
   branch?: string;
+  notes?: string;
 }
 
 export interface Product {
@@ -78,6 +82,7 @@ export interface Product {
   reservedQuantity: number;
   branch: string;
   status: 'available' | 'low-stock' | 'out-of-stock';
+  notes?: string;
 }
 
 export interface Vendor {
@@ -89,6 +94,7 @@ export interface Vendor {
   products: string[];
   rating: number;
   status: 'active' | 'inactive';
+  notes?: string;
 }
 
 export interface Transaction {
@@ -100,6 +106,7 @@ export interface Transaction {
   createdBy: string;
   date: string;
   branch?: string;
+  notes?: string;
 }
 
 export interface FundRequest {
@@ -111,6 +118,8 @@ export interface FundRequest {
   status: 'pending' | 'approved' | 'rejected';
   approvedBy?: string;
   remarks?: string;
+  branch?: string;
+  notes?: string;
 }
 
 export interface InventoryRequest {
@@ -123,6 +132,8 @@ export interface InventoryRequest {
   status: 'pending' | 'approved' | 'rejected' | 'transferred';
   fromBranch: string;
   toBranch: string;
+  remarks?: string;
+  notes?: string;
 }
 
 export interface Customer {
@@ -133,6 +144,7 @@ export interface Customer {
   address?: string;
   branch?: string;
   createdAt?: string;
+  notes?: string;
 }
 
 export interface Order {
@@ -148,6 +160,10 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   deadline?: string;
+  notes?: string;
+  assignedToRole?: string;
+  assignedToUser?: string;
+  assignedToUserName?: string;
 }
 
 export interface Notification {
