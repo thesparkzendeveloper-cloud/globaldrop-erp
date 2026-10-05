@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Search, Package, AlertTriangle, CheckCircle, XCircle, Filter, X } from 'lucide-react';
+import { Plus, Search, Package, AlertTriangle, CheckCircle, XCircle, X, Pencil, Trash2 } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
 import { useAuth } from '@/context/AuthContext';
 import { formatCurrency, getCurrencySymbol } from '@/utils/currency';
+import type { Product } from '@/types';
 
 const statusColors: Record<string, string> = {
   available: 'badge-green',
@@ -11,12 +12,16 @@ const statusColors: Record<string, string> = {
 };
 
 export default function InventoryPage() {
-  const { products, branches, addProduct } = useDb();
+  const { products, branches, addProduct, updateProduct, deleteProduct } = useDb();
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isAuthorizedToEdit = user?.role === 'admin' || user?.role === 'supervisor';
+
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterBranch, setFilterBranch] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [customCategory, setCustomCategory] = useState('');
   const [categoryMode, setCategoryMode] = useState<'select' | 'custom'>('select');
 
@@ -34,7 +39,33 @@ export default function InventoryPage() {
     return matchSearch && matchStatus && matchBranch;
   });
 
-  const handleAddProduct = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleOpenAddModal = () => {
+    setEditingProduct(null);
+    setCategoryMode('select');
+    setCustomCategory('');
+    setShowModal(true);
+  };
+
+  const handleOpenEditModal = (product: Product, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingProduct(product);
+    setCategoryMode('select');
+    setCustomCategory('');
+    setShowModal(true);
+  };
+
+  const handleDeleteProduct = async (product: Product, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete "${product.name}" (${product.sku})?`)) {
+      try {
+        await deleteProduct(product.id);
+      } catch (err) {
+        console.error('Failed to delete product:', err);
+      }
+    }
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const cost = parseFloat(formData.get('cost') as string) || 0;
@@ -46,26 +77,35 @@ export default function InventoryPage() {
     if (qty === 0) computedStatus = 'out-of-stock';
     else if (qty <= minStock) computedStatus = 'low-stock';
 
-    const newProduct = {
+    const categoryValue = categoryMode === 'custom' && customCategory.trim() 
+      ? customCategory.trim() 
+      : (formData.get('category') as string || 'General');
+
+    const productPayload = {
       sku: formData.get('sku') as string,
       name: formData.get('name') as string,
-      category: formData.get('category') as string,
+      category: categoryValue,
       costPrice: cost,
       sellingPrice: price,
       availableQuantity: qty,
-      reservedQuantity: 0,
+      reservedQuantity: editingProduct ? editingProduct.reservedQuantity : 0,
       branch: formData.get('branch') as string,
       status: computedStatus,
       notes: (formData.get('notes') as string || '').trim()
     };
 
     try {
-      await addProduct(newProduct);
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, productPayload);
+      } else {
+        await addProduct(productPayload);
+      }
       setShowModal(false);
+      setEditingProduct(null);
       setCustomCategory('');
       setCategoryMode('select');
     } catch (err) {
-      console.error(err);
+      console.error('Failed to save product:', err);
     }
   };
 
@@ -74,19 +114,20 @@ export default function InventoryPage() {
   const productCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
   const allCategories = Array.from(new Set([...DEFAULT_CATEGORIES, ...productCategories])).sort();
 
-
   return (
     <div className="page-enter">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold text-slate-800">Inventory</h1>
-          <p className="text-slate-500 mt-0.5 sm:mt-1 text-sm">Manage products and inventory transfers</p>
+          <p className="text-slate-500 mt-0.5 sm:mt-1 text-sm">Manage products, stock levels, and edit inventory details</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => { setShowModal(true); setCategoryMode('select'); setCustomCategory(''); }} className="btn-primary text-xs sm:text-sm">
-            <Plus size={16} /> <span>Add</span>
-          </button>
-        </div>
+        {isAuthorizedToEdit && (
+          <div className="flex gap-2">
+            <button onClick={handleOpenAddModal} className="btn-primary text-xs sm:text-sm">
+              <Plus size={16} /> <span>Add Product</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
@@ -146,7 +187,7 @@ export default function InventoryPage() {
             <Search size={16} className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search products..."
+              placeholder="Search products by name or SKU..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="form-input pl-8 sm:pl-10"
@@ -174,24 +215,37 @@ export default function InventoryPage() {
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="table-header">Product</th>
+              <th className="table-header hidden md:table-cell">Category</th>
               <th className="table-header hidden md:table-cell">Price</th>
               <th className="table-header text-right">Stock</th>
               <th className="table-header hidden sm:table-cell">Branch</th>
               <th className="table-header">Status</th>
+              {isAuthorizedToEdit && <th className="table-header text-right">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredProducts.map(product => (
+            {filteredProducts.length === 0 ? (
+              <tr>
+                <td colSpan={isAuthorizedToEdit ? 7 : 6} className="table-cell text-center text-slate-400 py-6">
+                  No inventory products found.
+                </td>
+              </tr>
+            ) : filteredProducts.map(product => (
               <tr key={product.id} className="hover:bg-slate-50 transition-colors">
                 <td className="table-cell">
                   <div className="min-w-0">
-                    <p className="font-medium text-slate-800 text-xs sm:text-sm truncate">{product.name}</p>
-                    <p className="text-xs text-slate-500">{product.sku}</p>
+                    <p className="font-semibold text-slate-800 text-xs sm:text-sm truncate">{product.name}</p>
+                    <p className="text-xs text-slate-500 font-mono">{product.sku}</p>
                   </div>
                 </td>
-                <td className="table-cell hidden md:table-cell text-slate-600 text-xs sm:text-sm">{formatCurrency(product.sellingPrice, user?.role)}</td>
+                <td className="table-cell hidden md:table-cell text-slate-600 text-xs sm:text-sm">
+                  <span className="badge-slate text-xs">{product.category}</span>
+                </td>
+                <td className="table-cell hidden md:table-cell text-slate-700 font-semibold text-xs sm:text-sm">
+                  {formatCurrency(product.sellingPrice, user?.role)}
+                </td>
                 <td className="table-cell text-right">
-                  <span className="font-medium text-xs sm:text-sm">{product.availableQuantity}</span>
+                  <span className="font-bold text-xs sm:text-sm">{product.availableQuantity}</span>
                 </td>
                 <td className="table-cell hidden sm:table-cell text-slate-600 text-xs truncate max-w-[120px]">{product.branch}</td>
                 <td className="table-cell">
@@ -199,18 +253,42 @@ export default function InventoryPage() {
                     {product.status === 'low-stock' ? 'Low' : product.status === 'out-of-stock' ? 'Out' : 'OK'}
                   </span>
                 </td>
+                {isAuthorizedToEdit && (
+                  <td className="table-cell text-right">
+                    <div className="flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => handleOpenEditModal(product, e)}
+                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit Product Details"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => handleDeleteProduct(product, e)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Product"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-
+      {/* Add / Edit Product Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <form onSubmit={handleAddProduct} className="modal-content p-4 sm:p-6 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-lg sm:text-xl font-semibold text-slate-800">Add Product</h2>
+          <form onSubmit={handleSaveProduct} className="modal-content p-4 sm:p-6 max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4 sm:mb-6 border-b pb-3">
+              <h2 className="text-lg sm:text-xl font-semibold text-slate-800">
+                {editingProduct ? `Edit Product (${editingProduct.sku})` : 'Add New Product'}
+              </h2>
               <button type="button" onClick={() => setShowModal(false)} className="p-1.5 sm:p-2 hover:bg-slate-100 rounded-lg">
                 <X size={18} />
               </button>
@@ -218,15 +296,23 @@ export default function InventoryPage() {
             <div className="space-y-3 sm:space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="form-label">SKU</label>
-                  <input type="text" name="sku" className="form-input" placeholder="SKU" required />
+                  <label className="form-label">SKU *</label>
+                  <input
+                    type="text"
+                    name="sku"
+                    className="form-input font-mono"
+                    placeholder="SKU-1001"
+                    defaultValue={editingProduct?.sku || ''}
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="form-label">Category</label>
+                  <label className="form-label">Category *</label>
                   {categoryMode === 'select' ? (
                     <select
                       name="category"
                       className="form-input"
+                      defaultValue={editingProduct?.category || allCategories[0] || 'Electronics'}
                       onChange={e => {
                         if (e.target.value === '__new__') {
                           setCategoryMode('custom');
@@ -264,45 +350,97 @@ export default function InventoryPage() {
                 </div>
               </div>
               <div>
-                <label className="form-label">Name</label>
-                <input type="text" name="name" className="form-input" placeholder="Product name" required />
+                <label className="form-label">Product Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  className="form-input"
+                  placeholder="Product name"
+                  defaultValue={editingProduct?.name || ''}
+                  required
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="form-label">Cost</label>
-                  <input type="number" name="cost" className="form-input" placeholder={`${getCurrencySymbol(user?.role)}0`} required />
+                  <label className="form-label">Cost Price ({getCurrencySymbol(user?.role)})</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="cost"
+                    className="form-input"
+                    placeholder={`${getCurrencySymbol(user?.role)}0`}
+                    defaultValue={editingProduct?.costPrice ?? 0}
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="form-label">Price</label>
-                  <input type="number" name="price" className="form-input" placeholder={`${getCurrencySymbol(user?.role)}0`} required />
+                  <label className="form-label">Selling Price ({getCurrencySymbol(user?.role)}) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="price"
+                    className="form-input font-semibold"
+                    placeholder={`${getCurrencySymbol(user?.role)}0`}
+                    defaultValue={editingProduct?.sellingPrice ?? 0}
+                    required
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="form-label">Initial Quantity</label>
-                  <input type="number" name="availableQuantity" className="form-input" placeholder="0" required />
+                  <label className="form-label">Available Stock Quantity *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    name="availableQuantity"
+                    className="form-input"
+                    placeholder="0"
+                    defaultValue={editingProduct?.availableQuantity ?? 0}
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="form-label">Minimum Stock Level</label>
-                  <input type="number" name="minimumStockLevel" className="form-input" placeholder="10" required />
+                  <label className="form-label">Minimum Stock Alert Level</label>
+                  <input
+                    type="number"
+                    min="0"
+                    name="minimumStockLevel"
+                    className="form-input"
+                    placeholder="10"
+                    defaultValue={editingProduct ? (editingProduct.status === 'low-stock' ? 10 : 5) : 10}
+                    required
+                  />
                 </div>
               </div>
               <div>
-                <label className="form-label">Branch</label>
-                <select name="branch" className="form-input" required>
+                <label className="form-label">Branch *</label>
+                <select
+                  name="branch"
+                  className="form-input"
+                  defaultValue={editingProduct?.branch || (branches.find(b => b.status === 'active')?.name || 'India Branch')}
+                  required
+                >
                   {branches.filter(b => b.status === 'active').map(b => (
                     <option key={b.id} value={b.name}>{b.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="form-label">Notes / Additional Info</label>
-                <textarea name="notes" className="form-input text-xs sm:text-sm" rows={2} placeholder="Add product notes or details..." />
+                <label className="form-label">Notes / Special Instructions</label>
+                <textarea
+                  name="notes"
+                  className="form-input text-xs sm:text-sm"
+                  rows={2}
+                  defaultValue={editingProduct?.notes || ''}
+                  placeholder="Add product notes or details..."
+                />
               </div>
             </div>
-            <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
-              <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
-              <button type="submit" className="btn-primary flex-1 justify-center">Add</button>
+            <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6 pt-2 border-t border-slate-100 justify-end">
+              <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
+              <button type="submit" className="btn-primary">
+                {editingProduct ? 'Save Changes' : 'Add Product'}
+              </button>
             </div>
           </form>
         </div>
@@ -310,4 +448,5 @@ export default function InventoryPage() {
     </div>
   );
 }
+
 
