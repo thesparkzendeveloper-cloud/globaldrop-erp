@@ -349,12 +349,33 @@ app.put('/api/settings', authenticateToken, requireRole(['admin']), async (req, 
   }
 });
 
+// US Eastern Time (ET: EDT/EST, America/New_York)
+const US_TIMEZONE = 'America/New_York';
+
+const getUSTimeAndDate = () => {
+  const now = new Date();
+  const date = new Intl.DateTimeFormat('en-CA', {
+    timeZone: US_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(now);
+  const time = new Intl.DateTimeFormat('en-GB', {
+    timeZone: US_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(now);
+  return { date, time };
+};
+
 // Custom endpoints for attendance
 app.post('/api/attendance/check-in', authenticateToken, async (req, res) => {
   try {
-    const { employeeId, employeeName } = req.body;
-    const today = new Date().toISOString().split('T')[0];
-    const nowTime = new Date().toTimeString().split(' ')[0].substring(0, 5); // "HH:MM"
+    const { employeeId, employeeName, date: reqDate, checkIn: reqTime } = req.body;
+    const { date: defaultDate, time: defaultTime } = getUSTimeAndDate();
+    const today = reqDate || defaultDate;
+    const nowTime = reqTime || defaultTime;
 
     let record = await Attendance.findOne({ employeeId, date: today });
     if (record) {
@@ -373,7 +394,7 @@ app.post('/api/attendance/check-in', authenticateToken, async (req, res) => {
     });
 
     await record.save();
-    await logAudit(req, 'Check-In', `Employee ${employeeName} checked in at ${nowTime} (Status: ${status})`);
+    await logAudit(req, 'Check-In', `Employee ${employeeName} checked in at ${nowTime} US Time (Status: ${status})`);
     res.status(201).json(record);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -382,9 +403,10 @@ app.post('/api/attendance/check-in', authenticateToken, async (req, res) => {
 
 app.post('/api/attendance/check-out', authenticateToken, async (req, res) => {
   try {
-    const { employeeId } = req.body;
-    const today = new Date().toISOString().split('T')[0];
-    const nowTime = new Date().toTimeString().split(' ')[0].substring(0, 5); // "HH:MM"
+    const { employeeId, date: reqDate, checkOut: reqTime } = req.body;
+    const { date: defaultDate, time: defaultTime } = getUSTimeAndDate();
+    const today = reqDate || defaultDate;
+    const nowTime = reqTime || defaultTime;
 
     const record = await Attendance.findOne({ employeeId, date: today });
     if (!record) {
@@ -408,7 +430,7 @@ app.post('/api/attendance/check-out', authenticateToken, async (req, res) => {
     }
 
     await record.save();
-    await logAudit(req, 'Check-Out', `Employee ${record.employeeName} checked out at ${nowTime} (Hours worked: ${record.workingHours})`);
+    await logAudit(req, 'Check-Out', `Employee ${record.employeeName} checked out at ${nowTime} US Time (Hours worked: ${record.workingHours})`);
     res.json(record);
   } catch (error) {
     res.status(500).json({ message: error.message });

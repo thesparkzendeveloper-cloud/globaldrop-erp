@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LogIn, LogOut, Calendar, Users, Clock, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
 
-const IST = 'Asia/Kolkata';
+const US_TIMEZONE = 'America/New_York';
 
-// Get current time in IST as HH:MM
-const getCurrentIST = (): string => {
-  return new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: IST,
+// Get current date in US Eastern Time as YYYY-MM-DD
+const getTodayUSDate = (): string => {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: US_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   }).format(new Date());
+};
+
+// Get current time in US Eastern Time as HH:MM
+const getCurrentUSTime = (): string => {
+  return new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: US_TIMEZONE,
+  }).format(new Date());
+};
+
+// Get current US timezone abbreviation (e.g. EDT / EST)
+const getUSTimeZoneAbbr = (): string => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: US_TIMEZONE,
+    timeZoneName: 'short',
+  }).formatToParts(new Date());
+  return parts.find(p => p.type === 'timeZoneName')?.value || 'ET';
 };
 
 // Format HH:MM → "09:30 AM"
@@ -24,9 +43,18 @@ const formatTime = (time?: string): string => {
 
 export default function AttendancePage() {
   const { attendanceRecords, employees, checkInEmployee, checkOutEmployee } = useDb();
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getTodayUSDate());
+  const [currentTime, setCurrentTime] = useState(getCurrentUSTime());
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'checkIn' | 'checkOut'>('checkIn');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(getCurrentUSTime());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const openModal = (type: 'checkIn' | 'checkOut') => {
     setModalType(type);
     setShowModal(true);
@@ -45,12 +73,13 @@ export default function AttendancePage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const employeeId = formData.get('employeeId') as string;
+    const formDate = (formData.get('date') as string) || date;
     const empName = employees.find(emp => emp.id === employeeId)?.name || 'Unknown';
     try {
       if (modalType === 'checkIn') {
-        await checkInEmployee(employeeId, empName);
+        await checkInEmployee(employeeId, empName, formDate);
       } else {
-        await checkOutEmployee(employeeId);
+        await checkOutEmployee(employeeId, formDate);
       }
       setShowModal(false);
     } catch (err) {
@@ -67,10 +96,10 @@ export default function AttendancePage() {
           <p className="text-slate-500 mt-0.5 sm:mt-1 text-sm">Track employee attendance and check-ins</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 -mx-1 px-1 sm:mx-0 sm:px-0 sm:pb-0">
-          {/* IST live clock badge */}
-          <div className="hidden sm:flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap">
-            <Clock size={13} />
-            IST {formatTime(getCurrentIST())}
+          {/* US live clock badge */}
+          <div className="hidden sm:flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap shadow-sm">
+            <Clock size={13} className="text-blue-600 animate-pulse" />
+            US ({getUSTimeZoneAbbr()}) {formatTime(currentTime)}
           </div>
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-1.5 sm:p-2">
             <Calendar size={16} className="text-slate-400" />
@@ -155,8 +184,8 @@ export default function AttendancePage() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="table-header">Employee</th>
-                <th className="table-header">Check In (IST)</th>
-                <th className="table-header">Check Out (IST)</th>
+                <th className="table-header">Check In (US Time)</th>
+                <th className="table-header">Check Out (US Time)</th>
                 <th className="table-header hidden sm:table-cell">Hours</th>
                 <th className="table-header">Status</th>
               </tr>
@@ -242,10 +271,10 @@ export default function AttendancePage() {
               </button>
             </div>
 
-            {/* IST banner */}
-            <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700 mb-4">
-              <Clock size={13} />
-              Current IST: <strong>{formatTime(getCurrentIST())}</strong> (India Standard Time, UTC+5:30)
+            {/* US Time banner */}
+            <div className="flex items-center gap-2 p-2.5 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700 mb-4">
+              <Clock size={13} className="text-blue-600" />
+              Current US Time: <strong>{formatTime(currentTime)} ({getUSTimeZoneAbbr()})</strong> (US Eastern Time)
             </div>
 
             <div className="space-y-3 sm:space-y-4">

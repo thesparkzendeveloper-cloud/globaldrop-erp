@@ -50,8 +50,8 @@ interface DbContextType {
   updateEmployee: (id: string, item: Partial<Employee>) => Promise<void>;
   deleteEmployee: (id: string) => Promise<void>;
 
-  checkInEmployee: (employeeId: string, employeeName: string) => Promise<void>;
-  checkOutEmployee: (employeeId: string) => Promise<void>;
+  checkInEmployee: (employeeId: string, employeeName: string, date?: string) => Promise<void>;
+  checkOutEmployee: (employeeId: string, date?: string) => Promise<void>;
 
   addTask: (item: Omit<Task, 'id'>) => Promise<void>;
   updateTask: (id: string, item: Partial<Task>) => Promise<void>;
@@ -302,13 +302,13 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Attendance
-  const checkInEmployee = async (employeeId: string, employeeName: string) => {
-    const record = await makeRequest('attendance/check-in', 'POST', { employeeId, employeeName });
-    setAttendanceRecords(prev => [mapMongoId(record), ...prev]);
+  const checkInEmployee = async (employeeId: string, employeeName: string, date?: string) => {
+    const record = await makeRequest('attendance/check-in', 'POST', { employeeId, employeeName, date });
+    setAttendanceRecords(prev => [mapMongoId(record), ...prev.filter(r => !(r.employeeId === employeeId && r.date === record.date))]);
     refreshData();
   };
-  const checkOutEmployee = async (employeeId: string) => {
-    const record = await makeRequest('attendance/check-out', 'POST', { employeeId });
+  const checkOutEmployee = async (employeeId: string, date?: string) => {
+    const record = await makeRequest('attendance/check-out', 'POST', { employeeId, date });
     setAttendanceRecords(prev => prev.map(r => r.employeeId === employeeId && r.date === record.date ? mapMongoId(record) : r));
     refreshData();
   };

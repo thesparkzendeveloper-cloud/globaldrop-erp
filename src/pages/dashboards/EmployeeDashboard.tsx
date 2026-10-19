@@ -35,7 +35,7 @@ export default function EmployeeDashboard() {
     branchInventory: 0
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
   const todayRecord = attendanceRecords.find(r => r.employeeId === user?.id && r.date === today);
   const checkedIn = !!todayRecord;
   const checkedOut = !!todayRecord?.checkOut;
