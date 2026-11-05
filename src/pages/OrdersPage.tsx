@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Package, Truck, CheckCircle, Clock, X, Plus, Trash2, Calendar, FileText, Pencil } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
 import { useAuth } from '@/context/AuthContext';
@@ -33,7 +33,22 @@ export default function OrdersPage() {
   const [filterBranch, setFilterBranch] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
-  const [checkedProducts, setCheckedProducts] = useState<Record<string, boolean>>({});
+  const [checkedProducts, setCheckedProducts] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('globaldrop_order_checked_products');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('globaldrop_order_checked_products', JSON.stringify(checkedProducts));
+    } catch (e) {
+      console.error('Failed to save checkedProducts to localStorage:', e);
+    }
+  }, [checkedProducts]);
 
   // Add / Edit Order Modal state
   const [showFormModal, setShowFormModal] = useState(false);
@@ -699,7 +714,8 @@ export default function OrdersPage() {
               <div className="space-y-2">
                 {selectedOrder.products.map((p, i) => {
                   const itemKey = `${selectedOrder.id}-${i}`;
-                  const isChecked = !!checkedProducts[itemKey];
+                  const nameKey = `${selectedOrder.id}-${p.name}`;
+                  const isChecked = !!checkedProducts[itemKey] || !!checkedProducts[nameKey];
                   return (
                     <div key={i} className={`flex items-center justify-between p-2.5 sm:p-3 bg-white border ${isChecked ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} rounded-lg shadow-sm transition-all`}>
                       <div className="flex items-center gap-3">
@@ -708,9 +724,11 @@ export default function OrdersPage() {
                           id={`chk-${itemKey}`}
                           checked={isChecked}
                           onChange={(e) => {
+                            const val = e.target.checked;
                             setCheckedProducts(prev => ({
                               ...prev,
-                              [itemKey]: e.target.checked
+                              [itemKey]: val,
+                              [nameKey]: val
                             }));
                           }}
                           className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer accent-emerald-600"

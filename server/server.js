@@ -349,19 +349,19 @@ app.put('/api/settings', authenticateToken, requireRole(['admin']), async (req, 
   }
 });
 
-// US Eastern Time (ET: EDT/EST, America/New_York)
-const US_TIMEZONE = 'America/New_York';
+// UK Time (GMT/BST, Europe/London)
+const UK_TIMEZONE = 'Europe/London';
 
-const getUSTimeAndDate = () => {
+const getUKTimeAndDate = () => {
   const now = new Date();
   const date = new Intl.DateTimeFormat('en-CA', {
-    timeZone: US_TIMEZONE,
+    timeZone: UK_TIMEZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
   }).format(now);
   const time = new Intl.DateTimeFormat('en-GB', {
-    timeZone: US_TIMEZONE,
+    timeZone: UK_TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',
     hour12: false
@@ -373,7 +373,7 @@ const getUSTimeAndDate = () => {
 app.post('/api/attendance/check-in', authenticateToken, async (req, res) => {
   try {
     const { employeeId, employeeName, date: reqDate, checkIn: reqTime } = req.body;
-    const { date: defaultDate, time: defaultTime } = getUSTimeAndDate();
+    const { date: defaultDate, time: defaultTime } = getUKTimeAndDate();
     const today = reqDate || defaultDate;
     const nowTime = reqTime || defaultTime;
 
@@ -394,7 +394,7 @@ app.post('/api/attendance/check-in', authenticateToken, async (req, res) => {
     });
 
     await record.save();
-    await logAudit(req, 'Check-In', `Employee ${employeeName} checked in at ${nowTime} US Time (Status: ${status})`);
+    await logAudit(req, 'Check-In', `Employee ${employeeName} checked in at ${nowTime} UK Time (Status: ${status})`);
     res.status(201).json(record);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -404,7 +404,7 @@ app.post('/api/attendance/check-in', authenticateToken, async (req, res) => {
 app.post('/api/attendance/check-out', authenticateToken, async (req, res) => {
   try {
     const { employeeId, date: reqDate, checkOut: reqTime } = req.body;
-    const { date: defaultDate, time: defaultTime } = getUSTimeAndDate();
+    const { date: defaultDate, time: defaultTime } = getUKTimeAndDate();
     const today = reqDate || defaultDate;
     const nowTime = reqTime || defaultTime;
 
@@ -430,7 +430,7 @@ app.post('/api/attendance/check-out', authenticateToken, async (req, res) => {
     }
 
     await record.save();
-    await logAudit(req, 'Check-Out', `Employee ${record.employeeName} checked out at ${nowTime} US Time (Hours worked: ${record.workingHours})`);
+    await logAudit(req, 'Check-Out', `Employee ${record.employeeName} checked out at ${nowTime} UK Time (Hours worked: ${record.workingHours})`);
     res.json(record);
   } catch (error) {
     res.status(500).json({ message: error.message });

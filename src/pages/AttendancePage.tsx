@@ -2,32 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { LogIn, LogOut, Calendar, Users, Clock, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { useDb } from '@/context/DbContext';
 
-const US_TIMEZONE = 'America/New_York';
+const UK_TIMEZONE = 'Europe/London';
 
-// Get current date in US Eastern Time as YYYY-MM-DD
-const getTodayUSDate = (): string => {
+// Get current date in UK Time as YYYY-MM-DD
+const getTodayUKDate = (): string => {
   return new Intl.DateTimeFormat('en-CA', {
-    timeZone: US_TIMEZONE,
+    timeZone: UK_TIMEZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   }).format(new Date());
 };
 
-// Get current time in US Eastern Time as HH:MM
-const getCurrentUSTime = (): string => {
+// Get current time in UK Time as HH:MM
+const getCurrentUKTime = (): string => {
   return new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: US_TIMEZONE,
+    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: UK_TIMEZONE,
   }).format(new Date());
 };
 
-// Get current US timezone abbreviation (e.g. EDT / EST)
-const getUSTimeZoneAbbr = (): string => {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: US_TIMEZONE,
+// Get current UK timezone abbreviation (e.g. GMT / BST)
+const getUKTimeZoneAbbr = (): string => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: UK_TIMEZONE,
     timeZoneName: 'short',
   }).formatToParts(new Date());
-  return parts.find(p => p.type === 'timeZoneName')?.value || 'ET';
+  return parts.find(p => p.type === 'timeZoneName')?.value || 'GMT';
 };
 
 // Format HH:MM → "09:30 AM"
@@ -43,14 +43,14 @@ const formatTime = (time?: string): string => {
 
 export default function AttendancePage() {
   const { attendanceRecords, employees, checkInEmployee, checkOutEmployee } = useDb();
-  const [date, setDate] = useState(getTodayUSDate());
-  const [currentTime, setCurrentTime] = useState(getCurrentUSTime());
+  const [date, setDate] = useState(getTodayUKDate());
+  const [currentTime, setCurrentTime] = useState(getCurrentUKTime());
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'checkIn' | 'checkOut'>('checkIn');
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(getCurrentUSTime());
+      setCurrentTime(getCurrentUKTime());
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -96,10 +96,10 @@ export default function AttendancePage() {
           <p className="text-slate-500 mt-0.5 sm:mt-1 text-sm">Track employee attendance and check-ins</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 -mx-1 px-1 sm:mx-0 sm:px-0 sm:pb-0">
-          {/* US live clock badge */}
+          {/* UK live clock badge */}
           <div className="hidden sm:flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap shadow-sm">
             <Clock size={13} className="text-blue-600 animate-pulse" />
-            US ({getUSTimeZoneAbbr()}) {formatTime(currentTime)}
+            UK ({getUKTimeZoneAbbr()}) {formatTime(currentTime)}
           </div>
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-1.5 sm:p-2">
             <Calendar size={16} className="text-slate-400" />
@@ -184,8 +184,8 @@ export default function AttendancePage() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="table-header">Employee</th>
-                <th className="table-header">Check In (US Time)</th>
-                <th className="table-header">Check Out (US Time)</th>
+                <th className="table-header">Check In (UK Time)</th>
+                <th className="table-header">Check Out (UK Time)</th>
                 <th className="table-header hidden sm:table-cell">Hours</th>
                 <th className="table-header">Status</th>
               </tr>
@@ -271,10 +271,10 @@ export default function AttendancePage() {
               </button>
             </div>
 
-            {/* US Time banner */}
+            {/* UK Time banner */}
             <div className="flex items-center gap-2 p-2.5 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700 mb-4">
               <Clock size={13} className="text-blue-600" />
-              Current US Time: <strong>{formatTime(currentTime)} ({getUSTimeZoneAbbr()})</strong> (US Eastern Time)
+              Current UK Time: <strong>{formatTime(currentTime)} ({getUKTimeZoneAbbr()})</strong> (London Time)
             </div>
 
             <div className="space-y-3 sm:space-y-4">
